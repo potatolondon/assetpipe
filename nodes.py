@@ -2,6 +2,9 @@ import os
 import StringIO
 
 from .compilers.scss import SCSS
+
+from .minifiers.yui import YUI
+
 from .outputters.blobstore import Blobstore
 from .outputters.filesystem import Filesystem
 
@@ -18,12 +21,15 @@ def register_compiler(name, compiler_class, extensions=None):
             COMPILERS_BY_EXTENSION[ext.lstrip(".")] = compiler_class
 
 def register_minifier(name, minifier_class):
-    pass
+    MINIFIERS[name] = minifier_class
 
 def register_outputter(name, outputter_class):
     OUTPUTTERS[name] = outputter_class
 
 register_compiler("scss", SCSS, [".scss"])
+
+register_minifier("yui", YUI)
+
 register_outputter("blobstore", Blobstore)
 register_outputter("filesystem", Filesystem)
 
@@ -81,9 +87,8 @@ class MinifyNode(Node):
         return OutputNode(self, outputter, directory)
 
     def do_run(self):
-        for f in self.inputs:
-            MINIFIERS[self.minifier_name]().minify(f)
-            self.outputs.append(f)
+        filetypes = [ os.path.splitext(x)[-1].lstrip(".") for x in self._root().generated_files ]
+        self.outputs = MINIFIERS[self.minifier_name]().minify(filetypes, self.inputs)
 
 class BundleNode(Node):
     def __init__(self, parent, output_file):
