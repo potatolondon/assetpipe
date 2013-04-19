@@ -157,15 +157,17 @@ class CompileNode(Node):
         self.outputs = compiler.compile(self.inputs)
 
 class Gather(Node):
-    def __init__(self, inputs):
+    def __init__(self, inputs, filenames=True):
         super(Gather, self).__init__(None)
 
         #Try to glob match the inputs
         for inp in inputs:
-            if "*" in inp or "?" in inp or "[" in inp:
+            if filenames:
                 matches = glob.glob(inp)
                 if matches:
                     self.inputs.extend(matches)
+                else:
+                    self.inputs.append(inp)
             else:
                 self.inputs.append(inp)
 
