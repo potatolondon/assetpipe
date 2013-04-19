@@ -1,6 +1,9 @@
 
 
 class Compiler(object):
+    def __init__(self, *args, **kwargs):
+        pass
+
     def compile(self, inputs):
         raise NotImplementedError()
 

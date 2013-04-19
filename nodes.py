@@ -1,8 +1,9 @@
 import os
 import StringIO
+import glob
 
 from .compilers.scss import SCSS
-
+from .compilers.closure import Closure
 from .minifiers.yui import YUI
 
 from .outputters.blobstore import Blobstore
@@ -27,6 +28,7 @@ def register_outputter(name, outputter_class):
     OUTPUTTERS[name] = outputter_class
 
 register_compiler("scss", SCSS, [".scss"])
+register_compiler("closure", Closure)
 
 register_minifier("yui", YUI)
 
@@ -126,17 +128,11 @@ class BundleNode(Node):
         self.outputs = [ output ]
 
 class CompileNode(Node):
-    def __init__(self, parent, compiler_name):
+    def __init__(self, parent, compiler_name, **kwargs):
         super(CompileNode, self).__init__(parent)
 
-        if compiler_name:
-            self.compiler = COMPILERS[compiler_name]()
-        else:
-            ext = os.path.splitext(self.inputs[0])[-1].lstrip(".")
-            if ext in COMPILERS_BY_EXTENSION:
-                self.compiler = COMPILERS_BY_EXTENSION[ext]
-            else:
-                raise ValueError("Couldn't find complier for extension: '%s'" % ext)
+        self.kwargs = kwargs
+        self.compiler_name = compiler_name
 
     def Bundle(self, output_name):
         return BundleNode(self, output_name)
@@ -147,19 +143,39 @@ class CompileNode(Node):
         return OutputNode(self, outputter, url_root, directory)
 
     def do_run(self):
-        self.outputs = self.compiler.compile(self.inputs)
+        if self.compiler_name:
+            compiler = COMPILERS[self.compiler_name](**self.kwargs)
+        else:
+            filename, ext = os.path.splitext(self.inputs[0])
+            ext = ext.lstrip(".")
+
+            if ext in COMPILERS_BY_EXTENSION:
+                compiler = COMPILERS_BY_EXTENSION[ext](**self.kwargs)
+            else:
+                raise ValueError("Couldn't find compiler for extension: '%s'" % ext)
+
+        self.outputs = compiler.compile(self.inputs)
 
 class Gather(Node):
     def __init__(self, inputs):
         super(Gather, self).__init__(None)
-        self.inputs = inputs
+
+        #Try to glob match the inputs
+        for inp in inputs:
+            if "*" in inp or "?" in inp or "[" in inp:
+                matches = glob.glob(inp)
+                if matches:
+                    self.inputs.extend(matches)
+            else:
+                self.inputs.append(inp)
+
         self.generated_files = self.inputs
 
     def do_run(self):
         self.outputs = self.inputs
 
-    def Compile(self, compiler_name=None):
-        return CompileNode(self, compiler_name, self.inputs)
+    def Compile(self, compiler_name=None, **kwargs):
+        return CompileNode(self, compiler_name, **kwargs)
 
     def Bundle(self, output_name):
         return BundleNode(self, output_name)

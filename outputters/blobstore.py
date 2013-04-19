@@ -20,6 +20,11 @@ class Blobstore(Outputter):
         else:
             mimetype = "application/octet-stream"
 
+        #Clear out old blobs
+        for info in BlobInfo.all().filter('content_type = ', mimetype):
+            if info.filename.split(".")[0] == filename:
+                info.delete()
+
         result = files.blobstore.create(mime_type=mimetype, _blobinfo_uploaded_filename=out_filename)
         with files.open(result, "a") as f:
             f.write(content)
