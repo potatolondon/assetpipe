@@ -14,8 +14,7 @@ class AssetNode(template.Node):
         tags = []
         for pipeline in settings.ASSET_PIPELINES:
             if bundle in pipeline._root().generated_files:
-                pipeline.run()
-                for output in pipeline.outputs:
+                for output in pipeline.output_urls():
                     if output.endswith(".css"):
                         tag = u'<link rel="stylesheet" type="text/css" href="%s" />' % os.path.join(settings.STATIC_URL, output)
                     elif output.endswith(".js"):

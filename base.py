@@ -12,10 +12,26 @@ class Minifier(object):
         raise NotImplementedError()
 
 class Outputter(object):
-    def __init__(self, url_root, directory=None):
-        self.url_root = url_root
+    def __init__(self, directory=None):
         self.directory = directory
 
     def output(self, filename, file_out):
         raise NotImplementedError()
 
+class NullCompiler(object):
+    def compile(self, inputs):
+        return inputs
+
+class NullMinifier(object):
+    def minify(self, filetypes, inputs):
+        return inputs
+
+class NullOutputter(object):
+    def __init__(self, directory):
+        self.cache = set()
+
+    def output(self, filename, file_out):
+        self.cache.add(filename)
+
+    def file_up_to_date(self, filename):
+        return filename in self.cache

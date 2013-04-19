@@ -9,6 +9,8 @@ class AssetMiddleware(object):
         pipelines = getattr(settings, 'ASSET_PIPELINES', [])
 
         for pipeline in pipelines:
+            pipeline.run()
+
             url_root = pipeline._root().url_root
 
             if not request.path.startswith(url_root):
