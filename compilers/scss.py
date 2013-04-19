@@ -1,23 +1,8 @@
 import os
 import StringIO
 from ..base import Compiler
-from djangoappengine.boot import PROJECT_DIR
 
 from django.conf import settings
-
-SASS_INCLUDE_PATHS = [
-    os.path.join(PROJECT_DIR, "gems", "sass", "lib"),
-    os.path.join(PROJECT_DIR, "gems", "compass", "lib"),
-    os.path.join(PROJECT_DIR, "gems", "chunky_png", "lib"),
-    os.path.join(PROJECT_DIR, "gems", "rubygems", "lib"),
-]
-
-SASS_FRAMEWORKS = [
-    os.path.join(PROJECT_DIR, "gems", "compass", "frameworks", "compass", "stylesheets"),
-    os.path.join(PROJECT_DIR, "gems", "compass", "frameworks", "blueprint", "stylesheets"),
-]
-
-SASS_COMPILER_BINARY = os.path.join(PROJECT_DIR, "gems", "sass", "bin", "sass")
 
 class SCSS(Compiler):
     def compile(self, inputs):
@@ -25,21 +10,24 @@ class SCSS(Compiler):
 
         results = []
 
-        sass_path = SASS_COMPILER_BINARY
+        sass_path = settings.SASS_COMPILER_BINARY
 
         command = [ "ruby" ]
 
-        for path in SASS_INCLUDE_PATHS:
+        for path in getattr(settings, "SASS_ADDITIONAL_LOAD_PATHS", []):
             command.append("-I")
             command.append('%s' % path)
 
         command.append(sass_path.strip())
-        command.extend(["-C", "-t", "expanded", "-s", "--require", "compass" ])
+        command.extend(["-C", "-t", "expanded", "-s"])
+
+        for require in getattr(settings, "SASS_ADDITIONAL_REQUIRES", []):
+            command.extend(["--require", require ])
 
         if settings.DEBUG:
             command.append("--line-numbers")
 
-        for path in SASS_FRAMEWORKS:
+        for path in getattr(settings, "SASS_ADDITIONAL_INCLUDE_PATHS", []):
             command.append("-I")
             command.append('%s' % path)
 
