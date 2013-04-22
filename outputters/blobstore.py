@@ -4,10 +4,27 @@ import logging
 from django.http import HttpResponse, HttpResponseNotFound
 
 from ..base import Outputter
-from google.appengine.api import files
-from google.appengine.ext.blobstore import BlobInfo, BlobReader
+try:
+    #Import the Google App Engine Blobstore if we have it
+    #but don't die (yet) if we don't.
+    from google.appengine.api import files
+    from google.appengine.ext.blobstore import BlobInfo, BlobReader
+    HAVE_BLOBSTORE = True
+except ImportError:
+    HAVE_BLOBSTORE = False
+
 
 class Blobstore(Outputter):
+
+    def __init__(self, *args, **kwargs):
+        if not HAVE_BLOBSTORE:
+            raise ImproperlyConfigured(
+                "Google Appengine components required for the 'blobstore' "
+                "outputter could not be imported."
+            )
+        super(Blobstore, self).__init__(*args, **kwargs)
+
+
     def output(self, filename, file_out):
         content = file_out.read()
 
