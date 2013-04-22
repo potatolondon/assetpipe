@@ -13,7 +13,7 @@ class AssetNode(template.Node):
 
         tags = []
 
-        active = getattr(settings.ASSET_PIPELINE_ACTIVE, "LIVE")
+        active = getattr(settings, "ASSET_PIPELINE_ACTIVE", "LIVE")
 
         for pipeline in settings.ASSET_PIPELINES[active]:
             if bundle in pipeline._root().generated_files:

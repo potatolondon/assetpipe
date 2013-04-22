@@ -6,9 +6,9 @@ class AssetMiddleware(object):
         if not settings.DEBUG:
             raise MiddlewareNotUsed()
 
-        pipelines = getattr(settings, 'ASSET_PIPELINES', [])
+        pipelines = getattr(settings, 'ASSET_PIPELINES', {})
 
-        for pipeline in pipelines:
+        for pipeline in pipelines.get(getattr(settings, 'ASSET_PIPELINE_ACTIVE'), 'DEV'):
             pipeline.run()
 
             url_root = pipeline._root().url_root
