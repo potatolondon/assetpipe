@@ -98,6 +98,24 @@ class Node(object):
 
         self.hash = hasher.hexdigest()
 
+
+    #Generic methods which allow chaining of the nodes
+    def Output(self, outputter, url_root=None, directory=None):
+        from django.conf import settings
+        url_root = url_root or settings.STATIC_URL
+        return OutputNode(self, outputter, url_root, directory)
+
+    def Minify(self, minifier):
+        return MinifyNode(self, minifier)
+
+    def Bundle(self, output_name):
+        return BundleNode(self, output_name)
+
+    def Compile(self, compiler_name=None, **kwargs):
+        return CompileNode(self, compiler_name, **kwargs)
+
+
+
 class OutputNode(Node):
     def __init__(self, parent, outputter_name, url_root, directory=None):
         super(OutputNode, self).__init__(parent)
@@ -142,11 +160,6 @@ class MinifyNode(Node):
 
         self.minifier_name = minifier
 
-    def Output(self, outputter, url_root=None, directory=None):
-        from django.conf import settings
-        url_root = url_root or settings.STATIC_URL
-        return OutputNode(self, outputter, url_root, directory)
-
     def do_run(self):
         filetypes = [ os.path.splitext(x)[-1].lstrip(".") for x in self._root().generated_files ]
         self.outputs = MINIFIERS[self.minifier_name]().minify(filetypes, self.inputs)
@@ -163,15 +176,6 @@ class BundleNode(Node):
         #Overwrite the generated_files list with just the single output file
         self._root().generated_files = [ output_file ]
         self.output_file = output_file
-
-    def Minify(self, minifier):
-        return MinifyNode(self, minifier)
-
-    def Output(self, outputter, url_root=None, directory=None):
-        from django.conf import settings
-        url_root = url_root or settings.STATIC_URL
-
-        return OutputNode(self, outputter, url_root, directory)
 
     def do_run(self):
         """
@@ -202,14 +206,6 @@ class CompileNode(Node):
 
         self.kwargs = kwargs
         self.compiler_name = compiler_name
-
-    def Bundle(self, output_name):
-        return BundleNode(self, output_name)
-
-    def Output(self, outputter, url_root=None, directory=None):
-        from django.conf import settings
-        url_root = url_root or settings.STATIC_URL
-        return OutputNode(self, outputter, url_root, directory)
 
     def do_run(self):
         if self.compiler_name:
@@ -269,12 +265,6 @@ class Gather(Node):
 
     def do_run(self):
         self.outputs = self.inputs
-
-    def Compile(self, compiler_name=None, **kwargs):
-        return CompileNode(self, compiler_name, **kwargs)
-
-    def Bundle(self, output_name):
-        return BundleNode(self, output_name)
 
     def is_dirty(self):
         return False
