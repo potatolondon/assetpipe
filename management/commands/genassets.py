@@ -13,8 +13,6 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.stdout = getattr(self, 'stdout', sys.stdout)
 
-        settings.on_production_server = True
-
         for pipeline in settings.ASSET_PIPELINES["LIVE"]:
             self.stdout.write("Running pipeline.\n")
             pipeline.run()
