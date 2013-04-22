@@ -12,7 +12,10 @@ class AssetNode(template.Node):
         bundle = template.Variable(self.bundle).resolve(context)
 
         tags = []
-        for pipeline in settings.ASSET_PIPELINES:
+
+        active = getattr(settings.ASSET_PIPELINE_ACTIVE, "LIVE")
+
+        for pipeline in settings.ASSET_PIPELINES[active]:
             if bundle in pipeline._root().generated_files:
                 for output in pipeline.output_urls():
                     if output.endswith(".css"):

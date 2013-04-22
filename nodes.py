@@ -142,7 +142,9 @@ class MinifyNode(Node):
 
         self.minifier_name = minifier
 
-    def Output(self, outputter, url_root, directory=None):
+    def Output(self, outputter, url_root=None, directory=None):
+        from django.conf import settings
+        url_root = url_root or settings.STATIC_URL
         return OutputNode(self, outputter, url_root, directory)
 
     def do_run(self):

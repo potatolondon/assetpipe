@@ -1,7 +1,7 @@
 import os
 import glob
 import logging
-from http import HttpResponse
+from django.http import HttpResponse
 
 from ..base import Outputter
 
@@ -12,12 +12,18 @@ class Filesystem(Outputter):
         base, ext = os.path.splitext(filename)
 
         already_exists = False
-        for f in glob.glob(base + "*" + ext):
-            if f == filename:
+        #Remove any existing stale entries
+        for f in glob.glob(os.path.join(self.directory, base.split(".")[0] + "*" + ext)):
+            if f[len(self.directory):].lstrip("/") == filename:
                 already_exists = True
                 continue
 
             os.remove(f)
+
+        filename = os.path.join(self.directory, filename)
+
+        if not os.path.exists(os.path.dirname(filename)):
+            os.makedirs(os.path.dirname(filename))
 
         if not already_exists:
             logging.error("Creating: %s", filename)
