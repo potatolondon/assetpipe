@@ -1,3 +1,4 @@
+import os
 import StringIO
 from django.conf import settings
 from ..base import Compiler
@@ -17,6 +18,12 @@ class Closure(Compiler):
         builder = settings.CLOSURE_BUILDER_BINARY
         try:
             command = ['python', builder, "--output_mode", "script" ]
+
+            closure_dir = os.path.dirname(os.path.dirname(os.path.dirname(builder)))
+            closure_deps = "%s/goog/deps.js" % closure_dir
+            assert(os.path.exists(closure_deps))
+
+            command.extend([ "-f", "--js", closure_deps ])
 
             for n in inputs:
                 command.extend(['--namespace', n])
