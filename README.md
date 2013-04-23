@@ -18,7 +18,7 @@ ASSET_PIPELINES = {}
 ASSET_PIPELINES['DEV'] = {
 	"main_css": Gather(["base.scss", "style.scss"])
 		.Compile("scss")
-		.Output("filesystem", os.path.join(PROJECT_DIR, "static", "js"),
+		.Output("filesystem", os.path.join(PROJECT_DIR, "static", "js")),
 
 	"main_js": Gather(["jquery.js", "custom.js"])
 		.Output("blobstore", "/devmedia/"),
@@ -29,8 +29,8 @@ ASSET_PIPELINES['LIVE'] = {
 		.Compile("scss")
 		.Bundle("admin.css") #the files will now be outputted as a single file with this name
 		.Minify("yui")
-		.Output("filesystem", os.path.join(PROJECT_DIR, "static", "js")
-		),
+		.Output("filesystem", os.path.join(PROJECT_DIR, "static", "js")),
+
 	"main_js": Gather(["jquery.js", "custom.js"])
 		.Bundle("main.js") #the files will now be outputted as a single file with this name
 		.Minify("yui")
