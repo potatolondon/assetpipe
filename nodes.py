@@ -9,6 +9,7 @@ from hashlib import md5
 from .processors import (
     Bundle,
     Closure,
+    HashFileNames,
     SCSS,
     YUI,
 )
@@ -30,6 +31,7 @@ def register_outputter(name, outputter_class):
 
 register_processor("bundle", Bundle)
 register_processor("closure", Closure)
+register_processor("hashfilenames", HashFileNames)
 register_processor("scss", SCSS)
 register_processor("yui", YUI)
 
@@ -148,10 +150,6 @@ class Node(object):
     def Process(self, processor, *args, **kwargs):
         return ProcessNode(self, processor, *args, **kwargs)
 
-    def HashFileNames(self):
-        return HashFileNamesNode(self)
-
-
 
 class OutputNode(Node):
     def __init__(self, parent, outputter_name, url_root, directory=None):
@@ -187,12 +185,12 @@ class OutputNode(Node):
 class ProcessNode(Node):
 
     def __init__(self, parent, processor_name, *args, **kwargs):
-        """ Instantiate the named processor with the given args and kwargs.
+        """ Instantiate the named processor passing in the pipeline and the given args and kwargs.
             Update the hash of the pipeline to include the fact that this processor has been added.
         """
         super(ProcessNode, self).__init__(parent)
         self.update_hash(parent, processor_name, *args, **kwargs)
-        self.processor = PROCESSORS[processor_name](*args, **kwargs)
+        self.processor = PROCESSORS[processor_name](self._root(), *args, **kwargs)
 
     def modify_expected_output_filenames(self):
         self.expected_output_filenames = self.processor.modify_expected_output_filenames(
@@ -204,31 +202,6 @@ class ProcessNode(Node):
 
     def is_dirty(self):
         return False
-
-
-
-class HashFileNamesNode(Node):
-
-    def do_run(self):
-        outputs = OrderedDict()
-        for filename, contents in self.outputs.items():
-            filename = self._add_hash_to_filename(filename)
-            outputs[filename] = contents
-        self.outputs = outputs
-
-    def modify_expected_output_filenames(self):
-        modified = []
-        for filename in self.expected_output_filenames:
-            modified.append(self._add_hash_to_filename(filename))
-        self.expected_output_filenames = modified
-
-    def is_dirty(self):
-        return False
-
-    def _add_hash_to_filename(self, filename):
-        hsh = self._root().pipeline_hash
-        part, ext = os.path.splitext(filename)
-        return ".".join([part, hsh, ext.lstrip(".")])
 
 
 class Gather(Node):

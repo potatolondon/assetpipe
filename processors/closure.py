@@ -5,7 +5,8 @@ from django.conf import settings
 from ..base import Processor
 
 class Closure(Processor):
-    def __init__(self, js_dirs):
+    def __init__(self, pipline, js_dirs):
+        super(Closure, self).__init__(pipline)
         self.js_dirs = js_dirs
 
 

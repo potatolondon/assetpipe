@@ -5,6 +5,13 @@
 
 class Processor(object):
 
+    def __init__(self, pipeline):
+        """ The pipeline is passed in so that you can access it if you need to.
+            The args and kwargs that you pass into .Process() when defining your
+            pipeline are also passed in here.
+        """
+        self.pipeline = pipeline
+
     def modify_expected_output_filenames(self, filenames):
         """ Given the existing list of filenames, return the list of
             filenames as it will be after self.processs() has run.
