@@ -6,7 +6,12 @@ import glob
 import logging
 from hashlib import md5
 
-from .processors import SCSS, Closure, YUI
+from .processors import (
+    Bundle,
+    Closure,
+    SCSS,
+    YUI,
+)
 
 from .base import NullOutputter #, NullCompiler, NullMinifier,
 from .outputters.blobstore import Blobstore
@@ -23,6 +28,7 @@ def register_outputter(name, outputter_class):
     OUTPUTTERS[name] = outputter_class
 
 
+register_processor("bundle", Bundle)
 register_processor("closure", Closure)
 register_processor("scss", SCSS)
 register_processor("yui", YUI)
@@ -142,9 +148,6 @@ class Node(object):
     def Process(self, processor, *args, **kwargs):
         return ProcessNode(self, processor, *args, **kwargs)
 
-    def Bundle(self, output_name):
-        return BundleNode(self, output_name)
-
     def HashFileNames(self):
         return HashFileNamesNode(self)
 
@@ -198,29 +201,6 @@ class ProcessNode(Node):
 
     def do_run(self):
         self.outputs = self.processor.process(self.outputs)
-
-    def is_dirty(self):
-        return False
-
-
-class BundleNode(Node):
-    def __init__(self, parent, output_file_name):
-        self.output_file_name = output_file_name
-        super(BundleNode, self).__init__(parent)
-        self.update_hash(parent, output_file_name)
-
-    def modify_expected_output_filenames(self):
-        self.expected_output_filenames = [self.output_file_name]
-
-    def do_run(self):
-        """
-            Concatenates the inputs into a single file
-        """
-        output = StringIO.StringIO()
-        for contents in self.outputs.values():
-            output.write(contents.read())
-        output.seek(0) #Rewind to the beginning
-        self.outputs = OrderedDict([(self.output_file_name, output)])
 
     def is_dirty(self):
         return False
