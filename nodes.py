@@ -56,10 +56,13 @@ class Node(object):
         # this is what gets modified in each step of the pipeline
         self.outputs = OrderedDict()
 
+        self.output_filename_changes_done = False
+
         self.parent = parent
         self.child = None
         if parent:
             parent.child = self
+
 
     def _root(self):
         if self.parent:
@@ -67,14 +70,17 @@ class Node(object):
         return self
 
     def run(self):
+        if not self.output_filename_changes_done:
+            self.run_output_filename_changes()
+            self.output_filename_changes_done = True
         if self.any_dirty():
+            self.run_output_filename_changes()
             logging.debug("PIPELINE: Running pipeline")
             self._root()._run()
         else:
             logging.error("PIPELINE: NOT running clean pipeline")
 
     def _run(self):
-        #TODO: why do we need this?
         if self.parent:
             self.outputs = self.parent.outputs.copy()
 
@@ -89,6 +95,12 @@ class Node(object):
 
     def is_dirty(self): raise NotImplementedError()
 
+    def modify_expected_output_filenames(self):
+        """ Alter self.expected_output_filenames in the same way that they
+            will be modified by do_run() when the pipeline actually runs.
+        """
+        raise NotImplementedError()
+
     def any_dirty(self):
         n = self._root()
         while n.child:
@@ -97,6 +109,29 @@ class Node(object):
             n = n.child
 
         return n.is_dirty()
+
+    def run_output_filename_changes(self):
+        n = self._root()
+        n.expected_output_filenames = []
+        while n.child:
+            n.modify_expected_output_filenames()
+            n.child.expected_output_filenames = n.expected_output_filenames
+            n = n.child
+
+    def generate_pipeline_hash(self, inputs, filenames=True):
+        """
+            Returns a hash representing this pipeline combined with its inputs
+        """
+        hasher = md5()
+        for inp in sorted(inputs):
+            if filenames:
+                u = str(os.path.getmtime(inp))
+                logging.error("%s - %s", inp, u)
+                hasher.update(u)
+            else:
+                hasher.update(inp)
+        return hasher.hexdigest()
+
 
     def update_hash(self, *args, **kwargs):
         parts = [ self.__class__.__name__ ] + [ str(x) for x in args ]
@@ -125,6 +160,9 @@ class Node(object):
     def Compile(self, compiler_name=None, **kwargs):
         return CompileNode(self, compiler_name, **kwargs)
 
+    def HashFileNames(self):
+        return HashFileNamesNode(self)
+
 
 
 class OutputNode(Node):
@@ -136,32 +174,27 @@ class OutputNode(Node):
         self._root().url_root = url_root
         self.outputter = OUTPUTTERS[outputter_name](directory)
 
-    def _build_output_filename(self, filename):
-        hsh = self._root().pipeline_hash
-        part, ext = os.path.splitext(filename)
-        return ".".join([part, hsh, ext.lstrip(".")])
 
     def output_urls(self):
-        return [ self._root().url_root + self._build_output_filename(x) for x in self.outputs.keys() ]
+        return [self._root().url_root + x for x in self.expected_output_filenames]
+
+    def modify_expected_output_filenames(self):
+        pass
 
     def do_run(self):
-        #OutputNode is the only type of node which does not set self.outputs
+        #OutputNode is the only type of node which does not alter self.outputs
         for filename, contents in self.outputs.items():
-            filename = self._build_output_filename(filename)
             self.outputter.output(filename, contents)
-
 
     def serve(self, filename):
         return self.outputter.serve(filename)
 
     def is_dirty(self):
-        self._root().pipeline_hash = generate_pipeline_hash(self._root(), self._root().input_files, self._root().input_files_are_filenames)
-
-        logging.error("PIPELINE HASH: %s", self._root().pipeline_hash)
-        for f in self._root().outputs.keys():
-            if not self.outputter.file_up_to_date(self._build_output_filename(f)):
+        for f in self.expected_output_filenames:
+            if not self.outputter.file_up_to_date(f):
                 return True
         return False
+
 
 class MinifyNode(Node):
     def __init__(self, parent, minifier):
@@ -171,6 +204,9 @@ class MinifyNode(Node):
 
         self.minifier_name = minifier
 
+    def modify_expected_output_filenames(self):
+        pass
+
     def do_run(self):
         self.outputs = MINIFIERS[self.minifier_name]().minify(self.outputs)
 
@@ -179,9 +215,12 @@ class MinifyNode(Node):
 
 class BundleNode(Node):
     def __init__(self, parent, output_file_name):
+        self.output_file_name = output_file_name
         super(BundleNode, self).__init__(parent)
         self.update_hash(parent, output_file_name)
-        self.output_file_name = output_file_name
+
+    def modify_expected_output_filenames(self):
+        self.expected_output_filenames = [self.output_file_name]
 
     def do_run(self):
         """
@@ -205,6 +244,15 @@ class CompileNode(Node):
         self.kwargs = kwargs
         self.compiler_name = compiler_name
 
+    def modify_expected_output_filenames(self):
+        #TODO: this is only going to work for SCSS at the moment
+        #this functionality needs passing down to the actual compiler
+        modified = []
+        for filename in self.expected_output_filenames:
+            filename, ext = os.path.splitext(filename)
+            modified.append("%s.css" % filename)
+        self.expected_output_filenames = modified
+
     def do_run(self):
         if self.compiler_name:
             compiler = COMPILERS[self.compiler_name](**self.kwargs)
@@ -222,20 +270,30 @@ class CompileNode(Node):
     def is_dirty(self):
         return False
 
-def generate_pipeline_hash(root_node, inputs, filenames=True):
-    """
-        Returns a hash representing this pipeline combined with its inputs
-    """
-    hasher = md5()
-    for inp in sorted(inputs):
-        if filenames:
-            u = str(os.path.getmtime(inp))
-            logging.error("%s - %s", inp, u)
-            hasher.update(u)
-        else:
-            hasher.update(inp)
 
-    return hasher.hexdigest()
+class HashFileNamesNode(Node):
+
+    def do_run(self):
+        outputs = OrderedDict()
+        for filename, contents in self.outputs.items():
+            filename = self._add_hash_to_filename(filename)
+            outputs[filename] = contents
+        self.outputs = outputs
+
+    def modify_expected_output_filenames(self):
+        modified = []
+        for filename in self.expected_output_filenames:
+            modified.append(self._add_hash_to_filename(filename))
+        self.expected_output_filenames = modified
+
+    def is_dirty(self):
+        return False
+
+    def _add_hash_to_filename(self, filename):
+        hsh = self._root().pipeline_hash
+        part, ext = os.path.splitext(filename)
+        return ".".join([part, hsh, ext.lstrip(".")])
+
 
 class Gather(Node):
     """ The starting node of every pipeline.  Picks up the specified
@@ -261,8 +319,15 @@ class Gather(Node):
 
         self.input_files = expanded_inputs if filenames else inputs
         self.input_files_are_filenames = filenames
-        self.pipeline_hash = generate_pipeline_hash(self, self.input_files, self.input_files_are_filenames)
+        self.pipeline_hash = self.generate_pipeline_hash(self.input_files, self.input_files_are_filenames)
 
+
+    def modify_expected_output_filenames(self):
+        if self.input_files_are_filenames:
+            self.expected_output_filenames = self.input_files
+        else:
+            #Currently the CompileNode can take Closure namespaces instead of files :-/
+            raise NotImplementedError("What do we do here?")
 
     def do_run(self):
         """ Picks up file contents to start.
