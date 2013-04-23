@@ -6,39 +6,31 @@ import glob
 import logging
 from hashlib import md5
 
-from .compilers.scss import SCSS
-from .compilers.closure import Closure
-from .minifiers.yui import YUI
+from .processors import SCSS, Closure, YUI
 
-from .base import NullCompiler, NullMinifier, NullOutputter
+from .base import NullOutputter #, NullCompiler, NullMinifier,
 from .outputters.blobstore import Blobstore
 from .outputters.filesystem import Filesystem
 
-COMPILERS = {}
-MINIFIERS = {}
+PROCESSORS = {}
 OUTPUTTERS = {}
 
 
-def register_compiler(name, compiler_class):
-    COMPILERS[name] = compiler_class
-
-def register_minifier(name, minifier_class):
-    MINIFIERS[name] = minifier_class
+def register_processor(name, processor_class):
+    PROCESSORS[name] = processor_class
 
 def register_outputter(name, outputter_class):
     OUTPUTTERS[name] = outputter_class
 
-register_compiler("null", NullCompiler)
-register_minifier("null", NullMinifier)
+
+register_processor("closure", Closure)
+register_processor("scss", SCSS)
+register_processor("yui", YUI)
+
 register_outputter("null", NullOutputter)
-
-register_compiler("scss", SCSS)
-register_compiler("closure", Closure)
-
-register_minifier("yui", YUI)
-
 register_outputter("blobstore", Blobstore)
 register_outputter("filesystem", Filesystem)
+
 
 class Node(object):
     def __init__(self, parent):
@@ -147,14 +139,11 @@ class Node(object):
         url_root = url_root or settings.STATIC_URL
         return OutputNode(self, outputter, url_root, directory)
 
-    def Minify(self, minifier):
-        return MinifyNode(self, minifier)
+    def Process(self, processor, *args, **kwargs):
+        return ProcessNode(self, processor, *args, **kwargs)
 
     def Bundle(self, output_name):
         return BundleNode(self, output_name)
-
-    def Compile(self, compiler_name=None, **kwargs):
-        return CompileNode(self, compiler_name, **kwargs)
 
     def HashFileNames(self):
         return HashFileNamesNode(self)
@@ -192,21 +181,27 @@ class OutputNode(Node):
         return False
 
 
-class MinifyNode(Node):
+class ProcessNode(Node):
 
-    def __init__(self, parent, minifier):
-        super(MinifyNode, self).__init__(parent)
-        self.update_hash(parent, minifier)
-        self.minifier = MINIFIERS[minifier]()
+    def __init__(self, parent, processor_name, *args, **kwargs):
+        """ Instantiate the named processor with the given args and kwargs.
+            Update the hash of the pipeline to include the fact that this processor has been added.
+        """
+        super(ProcessNode, self).__init__(parent)
+        self.update_hash(parent, processor_name, *args, **kwargs)
+        self.processor = PROCESSORS[processor_name](*args, **kwargs)
 
     def modify_expected_output_filenames(self):
-        pass
+        self.expected_output_filenames = self.processor.modify_expected_output_filenames(
+            self.expected_output_filenames
+        )
 
     def do_run(self):
-        self.outputs = self.minifier.minify(self.outputs)
+        self.outputs = self.processor.process(self.outputs)
 
     def is_dirty(self):
         return False
+
 
 class BundleNode(Node):
     def __init__(self, parent, output_file_name):
@@ -230,22 +225,6 @@ class BundleNode(Node):
     def is_dirty(self):
         return False
 
-class CompileNode(Node):
-    def __init__(self, parent, compiler_name, **kwargs):
-        super(CompileNode, self).__init__(parent)
-
-        self.update_hash(parent, compiler_name, **kwargs)
-        self.compiler = COMPILERS[compiler_name](**kwargs)
-
-    def modify_expected_output_filenames(self):
-        self.expected_output_filenames = self.compiler.modify_expected_output_filenames(self.expected_output_filenames)
-
-
-    def do_run(self):
-        self.outputs = self.compiler.compile(self.outputs)
-
-    def is_dirty(self):
-        return False
 
 
 class HashFileNamesNode(Node):

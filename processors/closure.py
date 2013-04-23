@@ -2,9 +2,9 @@ from collections import OrderedDict
 import os
 import StringIO
 from django.conf import settings
-from ..base import Compiler
+from ..base import Processor
 
-class Closure(Compiler):
+class Closure(Processor):
     def __init__(self, js_dirs):
         self.js_dirs = js_dirs
 
@@ -13,7 +13,7 @@ class Closure(Compiler):
         #TODO: modify these here
         return filenames
 
-    def compile(self, inputs):
+    def process(self, inputs):
         assert(inputs)
         assert(self.js_dirs)
 

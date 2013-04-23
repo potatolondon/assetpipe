@@ -1,11 +1,11 @@
 from collections import OrderedDict
 import os
 import StringIO
-from ..base import Compiler
+from ..base import Processor
 
 from django.conf import settings
 
-class SCSS(Compiler):
+class SCSS(Processor):
 
     def modify_expected_output_filenames(self, filenames):
         modified = []
@@ -15,7 +15,7 @@ class SCSS(Compiler):
         return modified
 
 
-    def compile(self, inputs):
+    def process(self, inputs):
         from subprocess import Popen, PIPE
 
         outputs = OrderedDict()
