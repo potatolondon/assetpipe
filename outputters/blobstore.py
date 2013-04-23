@@ -65,6 +65,8 @@ class Blobstore(Outputter):
         return result
 
     def serve(self, filename):
+        #TODO: Surely if this file is served from a hash-based URL then we
+        #can return HTTP caching headers, right?
         info = BlobInfo.all().filter('filename = ', filename).get()
         if not info:
             return HttpResponseNotFound()
