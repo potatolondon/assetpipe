@@ -193,18 +193,17 @@ class OutputNode(Node):
 
 
 class MinifyNode(Node):
+
     def __init__(self, parent, minifier):
         super(MinifyNode, self).__init__(parent)
-
         self.update_hash(parent, minifier)
-
-        self.minifier_name = minifier
+        self.minifier = MINIFIERS[minifier]()
 
     def modify_expected_output_filenames(self):
         pass
 
     def do_run(self):
-        self.outputs = MINIFIERS[self.minifier_name]().minify(self.outputs)
+        self.outputs = self.minifier.minify(self.outputs)
 
     def is_dirty(self):
         return False
@@ -236,9 +235,7 @@ class CompileNode(Node):
         super(CompileNode, self).__init__(parent)
 
         self.update_hash(parent, compiler_name, **kwargs)
-
-        self.kwargs = kwargs
-        self.compiler = COMPILERS[compiler_name](**self.kwargs)
+        self.compiler = COMPILERS[compiler_name](**kwargs)
 
     def modify_expected_output_filenames(self):
         self.expected_output_filenames = self.compiler.modify_expected_output_filenames(self.expected_output_filenames)
