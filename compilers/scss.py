@@ -6,6 +6,15 @@ from ..base import Compiler
 from django.conf import settings
 
 class SCSS(Compiler):
+
+    def modify_expected_output_filenames(self, filenames):
+        modified = []
+        for filename in filenames:
+            filename, ext = os.path.splitext(filename)
+            modified.append("%s.css" % filename)
+        return modified
+
+
     def compile(self, inputs):
         from subprocess import Popen, PIPE
 

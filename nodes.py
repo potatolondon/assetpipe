@@ -18,13 +18,9 @@ COMPILERS = {}
 MINIFIERS = {}
 OUTPUTTERS = {}
 
-COMPILERS_BY_EXTENSION = {}
 
-def register_compiler(name, compiler_class, extensions=None):
+def register_compiler(name, compiler_class):
     COMPILERS[name] = compiler_class
-    if extensions:
-        for ext in extensions:
-            COMPILERS_BY_EXTENSION[ext.lstrip(".")] = compiler_class
 
 def register_minifier(name, minifier_class):
     MINIFIERS[name] = minifier_class
@@ -36,7 +32,7 @@ register_compiler("null", NullCompiler)
 register_minifier("null", NullMinifier)
 register_outputter("null", NullOutputter)
 
-register_compiler("scss", SCSS, [".scss"])
+register_compiler("scss", SCSS)
 register_compiler("closure", Closure)
 
 register_minifier("yui", YUI)
@@ -242,30 +238,14 @@ class CompileNode(Node):
         self.update_hash(parent, compiler_name, **kwargs)
 
         self.kwargs = kwargs
-        self.compiler_name = compiler_name
+        self.compiler = COMPILERS[compiler_name](**self.kwargs)
 
     def modify_expected_output_filenames(self):
-        #TODO: this is only going to work for SCSS at the moment
-        #this functionality needs passing down to the actual compiler
-        modified = []
-        for filename in self.expected_output_filenames:
-            filename, ext = os.path.splitext(filename)
-            modified.append("%s.css" % filename)
-        self.expected_output_filenames = modified
+        self.expected_output_filenames = self.compiler.modify_expected_output_filenames(self.expected_output_filenames)
+
 
     def do_run(self):
-        if self.compiler_name:
-            compiler = COMPILERS[self.compiler_name](**self.kwargs)
-        else:
-            filename, ext = os.path.splitext(self.outputs[0])
-            ext = ext.lstrip(".")
-
-            if ext in COMPILERS_BY_EXTENSION:
-                compiler = COMPILERS_BY_EXTENSION[ext](**self.kwargs)
-            else:
-                raise ValueError("Couldn't find compiler for extension: '%s'" % ext)
-
-        self.outputs = compiler.compile(self.outputs)
+        self.outputs = self.compiler.compile(self.outputs)
 
     def is_dirty(self):
         return False

@@ -8,6 +8,11 @@ class Closure(Compiler):
     def __init__(self, js_dirs):
         self.js_dirs = js_dirs
 
+
+    def modify_expected_output_filenames(self, filenames):
+        #TODO: modify these here
+        return filenames
+
     def compile(self, inputs):
         assert(inputs)
         assert(self.js_dirs)
