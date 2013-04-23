@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import os
 import StringIO
 from ..base import Compiler
@@ -8,7 +9,7 @@ class SCSS(Compiler):
     def compile(self, inputs):
         from subprocess import Popen, PIPE
 
-        results = []
+        outputs = OrderedDict()
 
         sass_path = settings.SASS_COMPILER_BINARY
 
@@ -32,10 +33,12 @@ class SCSS(Compiler):
             command.append('%s' % path)
 
         try:
-            for i, inp in enumerate(inputs):
+            for filename, contents in inputs.items():
                 #Ignore CSS files, they don't need compiling
-                f, ext = os.path.splitext(inp)
-                if ext == ".css": continue
+                f, ext = os.path.splitext(filename)
+                if ext == ".css":
+                    outputs[filename] = contents
+                    continue
 
                 cmd = Popen(
                     command,
@@ -43,13 +46,15 @@ class SCSS(Compiler):
                     universal_newlines=True
                 )
 
-                output, error = cmd.communicate('@import "%s"' % inp)
+                output, error = cmd.communicate('@import "%s"' % filename)
                 assert cmd.wait() == 0, 'Command returned bad result:\n%s' % error
 
                 file_out = StringIO.StringIO()
                 file_out.write(output)
                 file_out.seek(0)
-                results.append(file_out)
+                #alter the filename to change the .scss extension to .css now that we've compiled it
+                filename = "%s.css" % f
+                outputs[filename] = file_out
 
         except Exception, e:
             raise ValueError("Failed to execute Ruby or SASS. "
@@ -57,6 +62,5 @@ class SCSS(Compiler):
                     "and that it's in your PATH and that you've configured "
                     "SASS_COMPILER_BINARY in your settings correctly.\n"
                     "Error was: %s" % e)
-
-        return results
+        return outputs
 

@@ -6,20 +6,28 @@ class AssetMiddleware(object):
         if not settings.DEBUG:
             raise MiddlewareNotUsed()
 
-        pipelines = getattr(settings, 'ASSET_PIPELINES', {})
+        active = getattr(settings, 'ASSET_PIPELINE_ACTIVE', 'DEV')
+        pipelines = settings.ASSET_PIPELINES.get(active, {})
 
-        for pipeline in pipelines.get(getattr(settings, 'ASSET_PIPELINE_ACTIVE'), 'DEV'):
+        for pipeline in pipelines.values():
             pipeline.run()
 
             url_root = pipeline._root().url_root
 
             if not request.path.startswith(url_root):
+                #If the URL being requested is not a sub-path of the serving URL of this bundle
                 continue
 
-            filename = request.path[len(url_root):]
+            #TODO: if we just made OutputNode.do_run() change self.outputs to the with-hash
+            #versions of the file names then all this messing around here wouldn't be necessary
 
-            bundle_name = filename.split(".")
-            bundle_name = ".".join([bundle_name[0], bundle_name[-1]])
+            #convert file-name.HASH12345XYZ.css into file-name.css
+            filename_with_hash = request.path[len(url_root):]
+            filename_base = filename_with_hash.split(".")
 
-            if bundle_name in pipeline._root().generated_files:
-                return pipeline.serve(filename)
+            parts = filename_base[0:-2]
+            parts.append(filename_base[-1])
+            filename_base = ".".join(parts)
+
+            if filename_base in pipeline.outputs.keys():
+                return pipeline.serve(filename_with_hash)

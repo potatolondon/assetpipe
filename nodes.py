@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import os
 from inspect import getsource
 import StringIO
@@ -45,8 +46,15 @@ register_outputter("filesystem", Filesystem)
 
 class Node(object):
     def __init__(self, parent):
+        #the list of files (including wildcards) which we started with
         self.inputs = []
-        self.outputs = []
+
+        #the expanded list of input files, with folder/* wildcards expanded
+        self.input_files = []
+
+        # filename:StringIO(contents) mappings of the files we will output
+        # this is what gets modified in each step of the pipeline
+        self.outputs = OrderedDict()
 
         self.parent = parent
         self.child = None
@@ -66,16 +74,19 @@ class Node(object):
             logging.error("PIPELINE: NOT running clean pipeline")
 
     def _run(self):
+        #TODO: why do we need this?
         if self.parent:
-            self.inputs = self.parent.outputs
+            self.outputs = self.parent.outputs.copy()
 
-        self.outputs = []
         self.do_run()
 
         if self.child:
             self.child._run()
 
-    def do_run(self): raise NotImplementedError()
+    def do_run(self):
+        """ Alter self.outputs. """
+        raise NotImplementedError()
+
     def is_dirty(self): raise NotImplementedError()
 
     def any_dirty(self):
@@ -131,14 +142,14 @@ class OutputNode(Node):
         return ".".join([part, hsh, ext.lstrip(".")])
 
     def output_urls(self):
-        return [ self._root().url_root + self._build_output_filename(x) for x in self._root().generated_files ]
+        return [ self._root().url_root + self._build_output_filename(x) for x in self.outputs.keys() ]
 
     def do_run(self):
-        for filename, f in zip(self._root().generated_files, self.inputs):
+        #OutputNode is the only type of node which does not set self.outputs
+        for filename, contents in self.outputs.items():
             filename = self._build_output_filename(filename)
-            self.outputter.output(filename,f)
+            self.outputter.output(filename, contents)
 
-        self.outputs = self.output_urls()
 
     def serve(self, filename):
         return self.outputter.serve(filename)
@@ -147,7 +158,7 @@ class OutputNode(Node):
         self._root().pipeline_hash = generate_pipeline_hash(self._root(), self._root().input_files, self._root().input_files_are_filenames)
 
         logging.error("PIPELINE HASH: %s", self._root().pipeline_hash)
-        for f in self._root().generated_files:
+        for f in self._root().outputs.keys():
             if not self.outputter.file_up_to_date(self._build_output_filename(f)):
                 return True
         return False
@@ -161,39 +172,26 @@ class MinifyNode(Node):
         self.minifier_name = minifier
 
     def do_run(self):
-        filetypes = [ os.path.splitext(x)[-1].lstrip(".") for x in self._root().generated_files ]
-        self.outputs = MINIFIERS[self.minifier_name]().minify(filetypes, self.inputs)
+        self.outputs = MINIFIERS[self.minifier_name]().minify(self.outputs)
 
     def is_dirty(self):
         return False
 
 class BundleNode(Node):
-    def __init__(self, parent, output_file):
+    def __init__(self, parent, output_file_name):
         super(BundleNode, self).__init__(parent)
-
-        self.update_hash(parent, output_file)
-
-        #Overwrite the generated_files list with just the single output file
-        self._root().generated_files = [ output_file ]
-        self.output_file = output_file
+        self.update_hash(parent, output_file_name)
+        self.output_file_name = output_file_name
 
     def do_run(self):
         """
-            Concatenates the input filestreams into a single StringIO and then
-            passes it on
+            Concatenates the inputs into a single file
         """
-
         output = StringIO.StringIO()
-        for inp in self.inputs:
-            if isinstance(inp, basestring):
-                inp = open(inp, "r")
-
-            content = inp.read()
-            output.write(content)
-            inp.close()
-
+        for contents in self.outputs.values():
+            output.write(contents.read())
         output.seek(0) #Rewind to the beginning
-        self.outputs = [ output ]
+        self.outputs = OrderedDict([(self.output_file_name, output)])
 
     def is_dirty(self):
         return False
@@ -211,7 +209,7 @@ class CompileNode(Node):
         if self.compiler_name:
             compiler = COMPILERS[self.compiler_name](**self.kwargs)
         else:
-            filename, ext = os.path.splitext(self.inputs[0])
+            filename, ext = os.path.splitext(self.outputs[0])
             ext = ext.lstrip(".")
 
             if ext in COMPILERS_BY_EXTENSION:
@@ -219,7 +217,7 @@ class CompileNode(Node):
             else:
                 raise ValueError("Couldn't find compiler for extension: '%s'" % ext)
 
-        self.outputs = compiler.compile(self.inputs)
+        self.outputs = compiler.compile(self.outputs)
 
     def is_dirty(self):
         return False
@@ -240,31 +238,49 @@ def generate_pipeline_hash(root_node, inputs, filenames=True):
     return hasher.hexdigest()
 
 class Gather(Node):
+    """ The starting node of every pipeline.  Picks up the specified
+        files from the filesystem and puts them into self.outputs.
+    """
     def __init__(self, inputs, filenames=True):
         super(Gather, self).__init__(None)
 
         self.update_hash(inputs, filenames)
 
         #Try to glob match the inputs
+        expanded_inputs = [] #will contain the full list of files, not just folder/*
         for inp in inputs:
             if filenames:
+                #Deal with wildcards which refer to directories
                 matches = glob.glob(inp)
                 if matches:
-                    self.inputs.extend(matches)
+                    expanded_inputs.extend(matches)
                 else:
-                    self.inputs.append(inp)
+                    expanded_inputs.append(inp)
             else:
-                self.inputs.append(inp)
+                expanded_inputs.append(inp)
 
-        self.input_files = self.inputs if filenames else inputs
+        self.input_files = expanded_inputs if filenames else inputs
         self.input_files_are_filenames = filenames
-
         self.pipeline_hash = generate_pipeline_hash(self, self.input_files, self.input_files_are_filenames)
 
-        self.generated_files = self.inputs
 
     def do_run(self):
-        self.outputs = self.inputs
+        """ Picks up file contents to start.
+        """
+        outputs = OrderedDict()
+        for inp in self.input_files:
+            if isinstance(inp, basestring):
+                f = open(inp, "r")
+                content = f.read()
+                f.close()
+            else:
+                content = inp
+
+            output = StringIO.StringIO()
+            output.write(content)
+            output.seek(0) #Rewind to the beginning
+            outputs[inp] = output
+        self.outputs = outputs
 
     def is_dirty(self):
         return False

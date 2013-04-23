@@ -1,30 +1,33 @@
 
+from collections import OrderedDict
+import os
 import StringIO
 from django.conf import settings
 from django.utils.encoding import smart_str
 from ..base import Minifier
 
 class YUI(Minifier):
-    def minify(self, filetypes, inputs):
+    def minify(self, inputs):
         from subprocess import Popen, PIPE
 
-        results = []
+        outputs = OrderedDict()
 
         compressor = settings.YUI_COMPRESSOR_BINARY
         try:
-            for i, inp in enumerate(inputs):
+            for filename, contents in inputs.items():
+                filetype = os.path.splitext(filename)[-1].lstrip(".")
                 cmd = Popen([
                     'java', '-jar', compressor,
-                    '--charset', 'utf-8', '--type', filetypes[i]],
+                    '--charset', 'utf-8', '--type', filetype],
                     stdin=PIPE, stdout=PIPE, stderr=PIPE,
                     universal_newlines=True
                 )
-                output, error = cmd.communicate(smart_str(inp.read()))
+                output, error = cmd.communicate(smart_str(contents.read()))
 
                 file_out = StringIO.StringIO()
                 file_out.write(output)
                 file_out.seek(0)
-                results.append(file_out)
+                outputs[filename] = file_out
 
         except Exception, e:
             raise ValueError("Failed to execute Java VM or yuicompressor. "
@@ -33,4 +36,4 @@ class YUI(Minifier):
                     "YUICOMPRESSOR_PATH in your settings correctly.\n"
                     "Error was: %s" % e)
 
-        return results
+        return outputs

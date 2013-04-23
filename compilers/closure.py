@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import os
 import StringIO
 from django.conf import settings
@@ -13,7 +14,7 @@ class Closure(Compiler):
 
         from subprocess import Popen, PIPE
 
-        results = []
+        outputs = OrderedDict()
 
         builder = settings.CLOSURE_BUILDER_BINARY
         try:
@@ -25,7 +26,7 @@ class Closure(Compiler):
 
             command.extend([ "-f", "--js", closure_deps ])
 
-            for n in inputs:
+            for filename in inputs.keys():
                 command.extend(['--namespace', n])
 
             for d in self.js_dirs:
@@ -41,7 +42,6 @@ class Closure(Compiler):
             file_out = StringIO.StringIO()
             file_out.write(output)
             file_out.seek(0)
-            results.append(file_out)
 
         except Exception, e:
             raise ValueError("Failed to execute closure-builder. "
@@ -50,4 +50,9 @@ class Closure(Compiler):
                     "CLOSURE_BUILDER_BINARY in your settings correctly.\n"
                     "Error was: %s" % e)
 
-        return results
+        #TODO:
+        #It seems that the Closure compiler only ever returns 1 file
+        #This is a bit odd.  TODO: check that this is right
+        filename = inputs.keys()[0]
+        outputs[filename] = file_out
+        return outputs
