@@ -21,25 +21,18 @@ from .outputters.filesystem import Filesystem
 PROCESSORS = {}
 OUTPUTTERS = {}
 
-PROCESSORS_BY_STAGE = {}
-
-def register_processor(name, processor_class, stage_name=None):
+def register_processor(name, processor_class):
     PROCESSORS[name] = processor_class
-    if stage_name:
-        if stage_name in PROCESSORS_BY_STAGE:
-            PROCESSORS_BY_STAGE[stage_name][name] = processor_class
-        else:
-            PROCESSORS_BY_STAGE[stage_name] = { name : processor_class }
 
 def register_outputter(name, outputter_class):
     OUTPUTTERS[name] = outputter_class
 
 
-register_processor("bundle", Bundle, "Bundle")
-register_processor("closure", ClosureBuilder, "Compile")
-register_processor("hashfilenames", HashFileNames, "Hash")
-register_processor("scss", SCSS, "Compile")
-register_processor("yui", YUI, "Compress")
+register_processor("bundle", Bundle)
+register_processor("closure", ClosureBuilder,)
+register_processor("hashfilenames", HashFileNames)
+register_processor("scss", SCSS)
+register_processor("yui", YUI)
 
 register_outputter("null", NullOutputter)
 register_outputter("blobstore", Blobstore)
@@ -155,24 +148,6 @@ class Node(object):
 
     def Process(self, processor, *args, **kwargs):
         return ProcessNode(self, processor, *args, **kwargs)
-
-    def __getattr__(self, name):
-        """
-            If we can't find an attribute then assume that the user is looking for a
-            named pipeline stage.
-        """
-        if name in PROCESSORS_BY_STAGE:
-            def wrapper(*args, **kwargs):
-                if args and args[0] in PROCESSORS_BY_STAGE[name]:
-                    return self.Process(args[0], *args[1:], **kwargs)
-                elif len(PROCESSORS_BY_STAGE[name]) == 1:
-                    #If there is only one processor registered for this stage, return it
-                    return self.Process(PROCESSORS_BY_STAGE[name].keys()[0], *args, **kwargs)
-                else:
-                    raise ValueError("No such processor '%s' for stage: %s" % (args[0], name))
-            return wrapper
-        else:
-            raise AttributeError()
 
 
 class OutputNode(Node):
