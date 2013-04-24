@@ -14,6 +14,9 @@ class ClosureBuilder(Processor):
         return filenames
 
     def process(self, inputs):
+        """
+            Runs the closurebuilder.py script to generate a single JS file.
+        """
         assert(self.namespaces)
         assert(inputs)
 

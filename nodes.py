@@ -157,6 +157,10 @@ class Node(object):
         return ProcessNode(self, processor, *args, **kwargs)
 
     def __getattr__(self, name):
+        """
+            If we can't find an attribute then assume that the user is looking for a
+            named pipeline stage.
+        """
         if name in PROCESSORS_BY_STAGE:
             def wrapper(*args, **kwargs):
                 if args and args[0] in PROCESSORS_BY_STAGE[name]:
