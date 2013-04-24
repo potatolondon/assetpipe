@@ -21,19 +21,25 @@ from .outputters.filesystem import Filesystem
 PROCESSORS = {}
 OUTPUTTERS = {}
 
+PROCESSORS_BY_STAGE = {}
 
-def register_processor(name, processor_class):
+def register_processor(name, processor_class, stage_name=None):
     PROCESSORS[name] = processor_class
+    if stage_name:
+        if stage_name in PROCESSORS_BY_STAGE:
+            PROCESSORS_BY_STAGE[stage_name][name] = processor_class
+        else:
+            PROCESSORS_BY_STAGE[stage_name] = { name : processor_class }
 
 def register_outputter(name, outputter_class):
     OUTPUTTERS[name] = outputter_class
 
 
-register_processor("bundle", Bundle)
-register_processor("closure", ClosureBuilder)
-register_processor("hashfilenames", HashFileNames)
-register_processor("scss", SCSS)
-register_processor("yui", YUI)
+register_processor("bundle", Bundle, "Bundle")
+register_processor("closure", ClosureBuilder, "Compile")
+register_processor("hashfilenames", HashFileNames, "Hash")
+register_processor("scss", SCSS, "Compile")
+register_processor("yui", YUI, "Compress")
 
 register_outputter("null", NullOutputter)
 register_outputter("blobstore", Blobstore)
@@ -150,21 +156,19 @@ class Node(object):
     def Process(self, processor, *args, **kwargs):
         return ProcessNode(self, processor, *args, **kwargs)
 
-    #Syntactic sugar just so that you can construct nicely readable pipelines
-    #for the most common actions
-    def Bundle(self, output_file, *args, **kwargs):
-        return self.Process("bundle", output_file, *args, **kwargs)
+    def __getattr__(self, name):
+        if name in PROCESSORS_BY_STAGE:
+            def wrapper(*args, **kwargs):
+                if args and args[0] in PROCESSORS_BY_STAGE[name]:
+                    return self.Process(args[0], *args[1:], **kwargs)
+                elif len(PROCESSORS_BY_STAGE[name]) == 1:
+                    return self.Process(PROCESSORS_BY_STAGE[name].keys()[0], *args, **kwargs)
+                else:
+                    raise ValueError("No such processor: %s" % args[0])
+            return wrapper
+        else:
+            raise AttributeError()
 
-    def Compile(self, what, *args, **kwargs):
-        assert(what in ["scss", "closure"])
-        return self.Process(what, *args, **kwargs)
-
-    def Compress(self, what, *args, **kwargs):
-        assert(what in ["yui"])
-        return self.Process(what, *args, **kwargs)
-
-    def Hash(self):
-        return self.Process("hashfilenames")
 
 class OutputNode(Node):
     def __init__(self, parent, outputter_name, url_root, directory=None):
