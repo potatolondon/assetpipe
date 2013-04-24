@@ -1,19 +1,29 @@
 import sys
-
-from django.core.management.base import BaseCommand
+from optparse import make_option
+from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
 
 class Command(BaseCommand):
     """ Command for generating production assets."""
 
     help = 'Generate production assets.'
-    extra_options = []
+    extra_options = [
+        make_option('--pipeline', action='store', dest='pipeline',
+            help='Specified which pipeline to run'
+        ),
+    ]
     option_list = BaseCommand.option_list + tuple(extra_options)
 
     def handle(self, *args, **options):
         self.stdout = getattr(self, 'stdout', sys.stdout)
 
-        for pipeline in settings.ASSET_PIPELINES["LIVE"]:
+        if not options.get("pipeline"):
+            raise CommandError("You must specify a pipeline to run")
+
+        if options["pipeline"] not in settings.ASSET_PIPELINES:
+            raise CommandError("%s is not a valid pipline" % options["pipeline"])
+
+        for k, v in settings.ASSET_PIPELINES[options["pipeline"]].items():
             self.stdout.write("Running pipeline.\n")
-            pipeline.run()
+            v.run()
 
