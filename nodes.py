@@ -29,7 +29,7 @@ def register_outputter(name, outputter_class):
 
 
 register_processor("bundle", Bundle)
-register_processor("closure", ClosureBuilder,)
+register_processor("closure_builder", ClosureBuilder)
 register_processor("hashfilenames", HashFileNames)
 register_processor("scss", SCSS)
 register_processor("yui", YUI)
