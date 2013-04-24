@@ -8,7 +8,7 @@ from hashlib import md5
 
 from .processors import (
     Bundle,
-    Closure,
+    ClosureBuilder,
     HashFileNames,
     SCSS,
     YUI,
@@ -30,7 +30,7 @@ def register_outputter(name, outputter_class):
 
 
 register_processor("bundle", Bundle)
-register_processor("closure", Closure)
+register_processor("closure", ClosureBuilder)
 register_processor("hashfilenames", HashFileNames)
 register_processor("scss", SCSS)
 register_processor("yui", YUI)
