@@ -162,9 +162,10 @@ class Node(object):
                 if args and args[0] in PROCESSORS_BY_STAGE[name]:
                     return self.Process(args[0], *args[1:], **kwargs)
                 elif len(PROCESSORS_BY_STAGE[name]) == 1:
+                    #If there is only one processor registered for this stage, return it
                     return self.Process(PROCESSORS_BY_STAGE[name].keys()[0], *args, **kwargs)
                 else:
-                    raise ValueError("No such processor: %s" % args[0])
+                    raise ValueError("No such processor '%s' for stage: %s" % (args[0], name))
             return wrapper
         else:
             raise AttributeError()
