@@ -54,13 +54,13 @@ The Compile, Bundle, Compress and Hash functions are just logical wrappers aroun
 
 To clarify, the above example could also be written like this, where the first argument to Process defines which processor to use:
 
-ASSET_PIPELINES['live'] = {
-	"main_css": Gather(["base.scss", "style.scss"])
-		.Process("scss")
-		.Process("bundle", "admin.css")
-		.Process("yui")
-		.Output("filesystem", os.path.join(PROJECT_DIR, "static", "js"))
-}
+	ASSET_PIPELINES['live'] = {
+		"main_css": Gather(["base.scss", "style.scss"])
+			.Process("scss")
+			.Process("bundle", "admin.css")
+			.Process("yui")
+			.Output("filesystem", os.path.join(PROJECT_DIR, "static", "js"))
+	}
 
 To write your own processor you must subclass `assetpipe.base.Processor`. This has two methods that must be overridden. The most important one is "process" which takes an ordered dictionary of
 { filename : file_like_object } which are the outputs from the previous stage in the pipeline. Your process function should manipulate these inputs in some way and then return another OrderedDict
