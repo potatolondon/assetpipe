@@ -150,6 +150,21 @@ class Node(object):
     def Process(self, processor, *args, **kwargs):
         return ProcessNode(self, processor, *args, **kwargs)
 
+    #Syntactic sugar just so that you can construct nicely readable pipelines
+    #for the most common actions
+    def Bundle(self, output_file, *args, **kwargs):
+        return self.Process("bundle", output_file, *args, **kwargs)
+
+    def Compile(self, what, *args, **kwargs):
+        assert(what in ["scss", "closure"])
+        return self.Process(what, *args, **kwargs)
+
+    def Compress(self, what, *args, **kwargs):
+        assert(what in ["yui"])
+        return self.Process(what, *args, **kwargs)
+
+    def Hash(self):
+        return self.Process("hashfilenames")
 
 class OutputNode(Node):
     def __init__(self, parent, outputter_name, url_root, directory=None):
