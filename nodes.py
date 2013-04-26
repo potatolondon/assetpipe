@@ -73,7 +73,7 @@ class Node(object):
             logging.debug("PIPELINE: Running pipeline")
             self._root()._run()
         else:
-            logging.error("PIPELINE: NOT running clean pipeline")
+            logging.debug("PIPELINE: NOT running clean pipeline")
 
     def _run(self):
         if self.parent:
@@ -112,6 +112,7 @@ class Node(object):
             n.modify_expected_output_filenames()
             n.child.expected_output_filenames = n.expected_output_filenames
             n = n.child
+        n.modify_expected_output_filenames()
 
     def generate_pipeline_hash(self, inputs, filenames=True):
         """
@@ -121,7 +122,6 @@ class Node(object):
         for inp in sorted(inputs):
             if filenames:
                 u = str(os.path.getmtime(inp))
-                logging.error("%s - %s", inp, u)
                 hasher.update(u)
             else:
                 hasher.update(inp)
