@@ -64,16 +64,21 @@ class Node(object):
             return self.parent._root()
         return self
 
+    def prepare(self):
+        """ A bit like calling .run() but without the is_dirty() checks. """
+        self.run_output_filename_changes()
+        self.output_filename_changes_done = True
+
     def run(self):
         if not self.output_filename_changes_done:
             self.run_output_filename_changes()
             self.output_filename_changes_done = True
         if self.any_dirty():
             self.run_output_filename_changes()
-            logging.debug("PIPELINE: Running pipeline")
+            logging.info("PIPELINE: Running pipeline")
             self._root()._run()
         else:
-            logging.debug("PIPELINE: NOT running clean pipeline")
+            logging.info("PIPELINE: NOT running clean pipeline")
 
     def _run(self):
         if self.parent:
@@ -256,4 +261,6 @@ class Gather(Node):
         self.outputs = outputs
 
     def is_dirty(self):
+        self.pipeline_hash = self.generate_pipeline_hash(self.input_files, self.input_files_are_filenames)
+        self.prepare()
         return False
