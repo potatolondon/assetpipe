@@ -66,3 +66,57 @@ After this, you'll be able to call your processor in a pipeline, e.g.
     Gather().Process("my_processor").Output()
 
 
+# Settings
+
+    ASSET_DEV_MODE = True|False
+
+If True, then the pipeline middleware will run on each request, this should be switched off on production
+
+    ASSET_PIPELINE_ACTIVE = str
+
+This defines which of the pipelines is "active" and will be run by the assetpipe middleware
+
+    ASSET_PIPELINES = { pipeline_name: { bundle_name: Pipeline } }
+
+This is the main setting, it defines your pipelines, it's a dictionary of dictionaries where the
+value is the pipeline itself
+
+## SASS Settings
+
+    SASS_ADDITIONAL_LOAD_PATHS = [ str, str ... ]
+
+This is a list of paths that will be added to Ruby's load path before executing SASS
+
+    SASS_ADDITIONAL_INCLUDE_PATHS = [ str, str ... ]
+
+This is a list of include directories that will be passed to SASS
+
+    SASS_ADDITIONAL_REQUIRES = [ str, str ... ]
+
+This is a list of Ruby modules that will be passed to SASS with --require
+
+    SASS_COMPILER_BINARY = str
+
+The path to the sass executable
+
+## YUI Settings
+
+    YUI_COMPRESSOR_BINARY = str
+
+The path to the yuicompressor JAR file
+
+## Closure Settings
+
+    CLOSURE_BUILDER_BINARY = str
+
+The path to the closurebuilder script. This must be in the closure-library tree for this processor to work.
+
+## Djangoappengine Settings
+
+With the latest djangoappengine from the potatolondon GitHub, you can use the following:
+
+    PRE_DEPLOY_COMMANDS = (
+        ('genassets', [], {"pipeline" : "live"}),
+    )
+
+which will generate your live assets at deploy time.

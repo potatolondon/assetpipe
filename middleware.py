@@ -2,11 +2,18 @@ from django.conf import settings
 from django.core.exceptions import MiddlewareNotUsed
 
 class AssetMiddleware(object):
-    def process_request(self, request):
-        if not settings.DEBUG:
+    def __init__(self):
+        if not settings.ASSET_DEV_MODE:
+            active = getattr(settings, 'ASSET_PIPELINE_ACTIVE')
+            pipelines = settings.ASSET_PIPELINES.get(active, {})
+
+            for pipeline in pipelines.values():
+                pipeline.prepare()
+
             raise MiddlewareNotUsed()
 
-        active = getattr(settings, 'ASSET_PIPELINE_ACTIVE', 'DEV')
+    def process_request(self, request):
+        active = getattr(settings, 'ASSET_PIPELINE_ACTIVE')
         pipelines = settings.ASSET_PIPELINES.get(active, {})
 
         for pipeline in pipelines.values():
