@@ -5,9 +5,10 @@ from django.conf import settings
 from ..base import Processor
 
 class ClosureBuilder(Processor):
-    def __init__(self, pipeline, namespaces):
+    def __init__(self, pipeline, namespaces, closure_deps_dir, js_dirs):
         super(ClosureBuilder, self).__init__(pipeline)
         self.namespaces = namespaces
+        self.js_dirs = js_dirs
 
     def modify_expected_output_filenames(self, filenames):
         #TODO: modify these here
@@ -28,12 +29,9 @@ class ClosureBuilder(Processor):
         try:
             command = ['python', builder, "--output_mode", "script" ]
 
-            closure_dir = os.path.dirname(os.path.dirname(os.path.dirname(builder)))
-            closure_deps = "%s/goog/deps.js" % closure_dir
-            assert(os.path.exists(closure_deps))
-
-            command.extend([ "-f", "--js", closure_deps ])
-            command.extend(["--root", os.path.dirname(closure_dir)])
+            for js_dir in self.js_dirs:
+                assert(os.path.exists(js_dir))
+                command.extend(["--root", js_dir])
 
             for n in self.namespaces:
                 command.extend(['--namespace', n])
@@ -46,7 +44,6 @@ class ClosureBuilder(Processor):
             )
             output, error = cmd.communicate()
             assert cmd.wait() == 0, 'Command returned bad result:\n%s' % error
-
             file_out = StringIO.StringIO()
             file_out.write(output)
             file_out.seek(0)
