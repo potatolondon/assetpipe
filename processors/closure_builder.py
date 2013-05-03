@@ -5,7 +5,7 @@ from django.conf import settings
 from ..base import Processor
 
 class ClosureBuilder(Processor):
-    def __init__(self, pipeline, namespaces, closure_deps_dir, js_dirs):
+    def __init__(self, pipeline, namespaces, js_dirs):
         super(ClosureBuilder, self).__init__(pipeline)
         self.namespaces = namespaces
         self.js_dirs = js_dirs
