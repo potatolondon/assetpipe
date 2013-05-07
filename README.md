@@ -22,7 +22,7 @@ ASSET_PIPELINES['dev'] = {
 
 	"main_js": Gather(["jquery.js", "custom.js"])
 		.Output("blobstore", "/devmedia/"),
-]
+}
 #For production we add in our minification and 'Bundle' steps
 ASSET_PIPELINES['live'] = {
 	"main_css": Gather(["base.scss", "style.scss"])
