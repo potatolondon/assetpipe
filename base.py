@@ -53,7 +53,8 @@ def read_generated_media_file(active_pipeline=None):
     active_pipeline = active_pipeline or settings.ASSET_PIPELINE_ACTIVE
 
     #Make the filename active pipeline specific
-    filename = ".".join([os.path.splitext(filename)[0], active_pipeline.lower(), os.path.splitext(filename)[-1]])
+    path, ext = os.path.splitext(filename)
+    filename = ".".join([path, active_pipeline.lower(), ext.lstrip(".")])
     return simplejson.loads(open(filename).read())
 
 def build_generated_media_file(active_pipeline=None):
@@ -64,7 +65,8 @@ def build_generated_media_file(active_pipeline=None):
     active_pipeline = active_pipeline or settings.ASSET_PIPELINE_ACTIVE
 
     #Make the filename active pipeline specific
-    filename = ".".join([os.path.splitext(filename)[0], active_pipeline.lower(), os.path.splitext(filename)[-1]])
+    path, ext = os.path.splitext(filename)
+    filename = ".".join([path, active_pipeline.lower(), ext.lstrip(".")])
 
     final = {}
     for k, v in settings.ASSET_PIPELINES[active_pipeline].items():
