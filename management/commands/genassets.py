@@ -2,6 +2,7 @@ import sys
 from optparse import make_option
 from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
+from assetpipe.base import build_generated_media_file
 
 class Command(BaseCommand):
     """ Command for generating production assets."""
@@ -26,4 +27,6 @@ class Command(BaseCommand):
         for k, v in settings.ASSET_PIPELINES[options["pipeline"]].items():
             self.stdout.write("Running pipeline.\n")
             v.run()
+
+        build_generated_media_file(options["pipeline"])
 

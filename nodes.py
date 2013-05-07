@@ -1,9 +1,10 @@
 from collections import OrderedDict
 import os
-from inspect import getsource
 import StringIO
 import glob
 import logging
+from django.conf import settings
+
 from hashlib import md5
 
 from .processors import (
@@ -147,7 +148,6 @@ class Node(object):
 
     #Generic methods which allow chaining of the nodes
     def Output(self, outputter, url_root=None, directory=None):
-        from django.conf import settings
         url_root = url_root or settings.STATIC_URL
         return OutputNode(self, outputter, url_root, directory)
 
@@ -159,6 +159,8 @@ class OutputNode(Node):
     def __init__(self, parent, outputter_name, url_root, directory=None):
         super(OutputNode, self).__init__(parent)
 
+        directory = os.path.join(settings.STATIC_ROOT, directory or "")
+
         self.update_hash(parent, outputter_name, url_root, directory)
 
         self._root().url_root = url_root
@@ -166,7 +168,18 @@ class OutputNode(Node):
 
 
     def output_urls(self):
-        return [self._root().url_root + x for x in self.expected_output_filenames]
+        result = []
+
+        output_dir = self.outputter.directory
+        common_prefix = os.path.commonprefix([settings.STATIC_ROOT, output_dir])
+
+        for output in self.expected_output_filenames:
+            result.append(
+                self._root().url_root +
+                os.path.relpath(os.path.join(output_dir, output), common_prefix)
+            )
+
+        return result
 
     def modify_expected_output_filenames(self):
         pass
