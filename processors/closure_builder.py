@@ -45,6 +45,8 @@ class ClosureBuilder(Processor):
             output, error = cmd.communicate()
             assert cmd.wait() == 0, 'Command returned bad result:\n%s' % error
             file_out = StringIO.StringIO()
+            # Keep closure from needing a deps.js file
+            file_out.write('window.CLOSURE_NO_DEPS = true;')
             file_out.write(output)
             file_out.seek(0)
 
