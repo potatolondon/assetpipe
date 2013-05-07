@@ -1,7 +1,7 @@
 """ Base classes for the processors and outputters.
     You can extend these to make your own processors and outputters.
 """
-
+import os
 
 class Processor(object):
 
@@ -44,3 +44,32 @@ class NullOutputter(object):
     def file_up_to_date(self, filename):
         return filename in self.cache
 
+
+def read_generated_media_file(active_pipeline=None):
+    from django.conf import settings
+    from django.utils import simplejson
+
+    filename = settings.ASSET_MEDIA_URLS_FILE
+    active_pipeline = active_pipeline or settings.ASSET_PIPELINE_ACTIVE
+
+    #Make the filename active pipeline specific
+    filename = ".".join([os.path.splitext(filename)[0], active_pipeline.lower(), os.path.splitext(filename)[-1]])
+    return simplejson.loads(open(filename).read())
+
+def build_generated_media_file(active_pipeline=None):
+    from django.conf import settings
+    from django.utils import simplejson
+
+    filename = settings.ASSET_MEDIA_URLS_FILE
+    active_pipeline = active_pipeline or settings.ASSET_PIPELINE_ACTIVE
+
+    #Make the filename active pipeline specific
+    filename = ".".join([os.path.splitext(filename)[0], active_pipeline.lower(), os.path.splitext(filename)[-1]])
+
+    final = {}
+    for k, v in settings.ASSET_PIPELINES[active_pipeline].items():
+        v.run()
+        final[k] = v.output_urls()
+
+    with open(filename, "w") as f:
+        f.write(simplejson.dumps(final))

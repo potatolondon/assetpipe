@@ -1,24 +1,36 @@
 import os
 from django import template
 from django.conf import settings
+from assetpipe.base import read_generated_media_file
 
 register = template.Library()
 
 class AssetNode(template.Node):
     def __init__(self, pipeline_name):
         self.pipeline_name = pipeline_name
+        self._generated_cache = None
 
     def render(self, context):
         pipeline_name = template.Variable(self.pipeline_name).resolve(context)
         tags = []
-        active = getattr(settings, "ASSET_PIPELINE_ACTIVE", "LIVE")
-        try:
-            pipeline = settings.ASSET_PIPELINES[active][pipeline_name]
-        except:
-            raise template.TemplateSyntaxError(
-                "Pipline with name %s not defined in settings.ASSET_PIPELINES." % pipeline_name
-            )
-        for output in pipeline.output_urls():
+
+        if settings.ASSET_DEV_MODE:
+            active = settings.ASSET_PIPELINE_ACTIVE
+            try:
+                pipeline = settings.ASSET_PIPELINES[active][pipeline_name]
+            except:
+                raise template.TemplateSyntaxError(
+                    "Pipeline with name %s not defined in settings.ASSET_PIPELINES." % pipeline_name
+                )
+            outputs = pipeline.output_urls()
+        else:
+            #On live, we used the generated media file
+            if self._generated_cache is None:
+                self._generated_cache = read_generated_media_file()
+
+            outputs = self._generated_cache[pipeline_name]
+
+        for output in outputs:
             if output.endswith(".css"):
                 tag = u'<link rel="stylesheet" type="text/css" href="%s" />' % os.path.join(settings.STATIC_URL, output)
             elif output.endswith(".js"):
