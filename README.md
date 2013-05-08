@@ -29,7 +29,7 @@ ASSET_PIPELINES['live'] = {
 		.Process("scss")
 		.Process("bundle", "admin.css") #the files will now be outputted as a single file with this name
 		.Process("yui")
-		.Output("filesystem", os.path.join(PROJECT_DIR, "static", "js")),
+		.Output("filesystem", "js"),
 
 	"main_js": Gather(["jquery.js", "custom.js"])
 		.Process("bundle", "main.js") #the files will now be outputted as a single file with this name

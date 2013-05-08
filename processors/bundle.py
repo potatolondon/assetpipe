@@ -19,6 +19,7 @@ class Bundle(Processor):
         output = StringIO.StringIO()
         for contents in inputs.values():
             output.write(contents.read())
+            output.write("\n")
         output.seek(0) #Rewind to the beginning
         return OrderedDict([(self.output_file_name, output)])
 

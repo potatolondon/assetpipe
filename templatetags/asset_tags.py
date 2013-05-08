@@ -34,7 +34,7 @@ class AssetNode(template.Node):
             if output.endswith(".css"):
                 tag = u'<link rel="stylesheet" type="text/css" href="%s" />' % os.path.join(settings.STATIC_URL, output)
             elif output.endswith(".js"):
-                tag = u'<script type="text/javascript" src="%s"></script>' % os.path.join(settings.STATIC_URL, output)
+                tag = u'<script src="%s"></script>' % os.path.join(settings.STATIC_URL, output)
             else:
                 raise ValueError("Invalid output found")
             tags.append(tag)
