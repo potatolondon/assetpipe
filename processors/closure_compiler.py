@@ -24,7 +24,10 @@ class ClosureCompiler(Processor):
         try:
             for filename, contents in inputs.items():
                 cmd = Popen([
-                    'java', '-jar', compressor, "--language_in", "ECMASCRIPT5_STRICT"],
+                    'java', '-jar', compressor,
+                    "--language_in", "ECMASCRIPT5_STRICT",
+                    "--compilation_level", "SIMPLE_OPTIMIZATIONS"
+                    ],
                     stdin=PIPE, stdout=PIPE, stderr=PIPE,
                     universal_newlines=True
                 )
