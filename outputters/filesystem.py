@@ -26,7 +26,7 @@ class Filesystem(Outputter):
             os.makedirs(os.path.dirname(filename))
 
         if not already_exists:
-            logging.error("Creating: %s", filename)
+            logging.info("Creating: %s", filename)
 
             with open(filename, "w") as f:
                 f.write(content)

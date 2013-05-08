@@ -25,7 +25,6 @@ class Command(BaseCommand):
             raise CommandError("%s is not a valid pipline" % options["pipeline"])
 
         for k, v in settings.ASSET_PIPELINES[options["pipeline"]].items():
-            self.stdout.write("Running pipeline.\n")
             v.run()
 
         build_generated_media_file(options["pipeline"])

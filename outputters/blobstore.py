@@ -46,11 +46,11 @@ class Blobstore(Outputter):
 
             #Clear out old blobs
             if info.filename.split(".")[0] == filename.split(".")[0]:
-                logging.error("Deleting: %s", info.filename)
+                logging.debug("Deleting: %s", info.filename)
                 info.delete()
 
         if not already_exists:
-            logging.error("Creating: %s", filename)
+            logging.info("Creating: %s", filename)
             result = files.blobstore.create(mime_type=mimetype, _blobinfo_uploaded_filename=filename)
             with files.open(result, "a") as f:
                 f.write(content)

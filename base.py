@@ -70,7 +70,6 @@ def build_generated_media_file(active_pipeline=None):
 
     final = {}
     for k, v in settings.ASSET_PIPELINES[active_pipeline].items():
-        v.run()
         final[k] = v.output_urls()
 
     with open(filename, "w") as f:
