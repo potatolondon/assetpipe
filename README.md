@@ -125,7 +125,7 @@ If True, then the pipeline middleware will run on each request, this should be s
 This defines which of the pipelines is "active" and will be run by the assetpipe middleware
 
     ASSET_MEDIA_URLS_FILE = str
-    
+
 Defines the path of the manifest file
 
     ASSET_PIPELINES = { pipeline_name: { bundle_name: Pipeline } }
@@ -155,13 +155,17 @@ The path to the sass executable
 
     YUI_COMPRESSOR_BINARY = str
 
-The path to the yuicompressor JAR file
+The path to the yuicompressor JAR file. WARNING: Don't use YUI for JS files, because it's deprecated and fails regularly.
 
 ## Closure Settings
 
     CLOSURE_BUILDER_BINARY = str
 
 The path to the closurebuilder script. This must be in the closure-library tree for this processor to work.
+
+## CLOSURE_COMPILER_BINARY = str
+
+The path to the compiler.jar for closure compiler
 
 ## Djangoappengine Settings
 
