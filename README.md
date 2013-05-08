@@ -163,7 +163,7 @@ The path to the yuicompressor JAR file. WARNING: Don't use YUI for JS files, bec
 
 The path to the closurebuilder script. This must be in the closure-library tree for this processor to work.
 
-## CLOSURE_COMPILER_BINARY = str
+    CLOSURE_COMPILER_BINARY = str
 
 The path to the compiler.jar for closure compiler
 
