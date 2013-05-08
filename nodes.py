@@ -13,6 +13,7 @@ from .processors import (
     HashFileNames,
     SCSS,
     YUI,
+    ClosureCompiler
 )
 
 from .base import NullOutputter #, NullCompiler, NullMinifier,
@@ -31,6 +32,8 @@ def register_outputter(name, outputter_class):
 
 register_processor("bundle", Bundle)
 register_processor("closure_builder", ClosureBuilder)
+register_processor("closure_compiler", ClosureCompiler)
+register_processor("closure", ClosureCompiler)
 register_processor("hashfilenames", HashFileNames)
 register_processor("scss", SCSS)
 register_processor("yui", YUI)
