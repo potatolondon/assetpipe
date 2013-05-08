@@ -8,36 +8,74 @@ For sites running on Google App Engine processed files are served from the Blobs
 
 ## Basic usage
 
-Add the 'assetpipe' app to your Django project.
-
-Define your piplines in settings.py...
+Add the 'assetpipe' app to your `INSTALLED_APPS`:
 
 ```
+INSTALLED_APPS = (
+	'...',
+    'assetpipe',
+    '...'
+)
+```
+
+Add the assetpipe middleware to your `MIDDLEWARE_CLASSES`:
+
+```
+MIDDLEWARE_CLASSES = (
+    'django.middleware.common.CommonMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    '...',
+    'assetpipe.middleware.AssetMiddleware',
+    '...',
+)
+```
+
+Set your `STATIC_ROOT`:
+
+```
+STATIC_ROOT = os.path.join(PROJECT_DIR, 'static', 'media')
+```
+
+
+Define your pipelines in settings.py:
+
+```
+from assetpipe.nodes import Gather
+
 ASSET_PIPELINES = {}
-#For development we define our pipeline without the minification or bundle steps
+
+# For development we define our pipeline without the minification or bundle steps
 ASSET_PIPELINES['dev'] = {
 	"main_css": Gather(["base.scss", "style.scss"])
 		.Process("scss")
-		.Output("filesystem", os.path.join(PROJECT_DIR, "static", "js")),
+		.Output("blobstore", "/devmedia/"),
 
 	"main_js": Gather(["jquery.js", "custom.js"])
 		.Output("blobstore", "/devmedia/"),
 }
-#For production we add in our minification and 'Bundle' steps
+
+# For production we add in our minification and 'Bundle' steps
 ASSET_PIPELINES['live'] = {
 	"main_css": Gather(["base.scss", "style.scss"])
 		.Process("scss")
 		.Process("bundle", "admin.css") #the files will now be outputted as a single file with this name
 		.Process("yui")
-		.Output("filesystem", os.path.join(PROJECT_DIR, "static", "js")),
+		.Output("filesystem", os.path.join(PROJECT_DIR, "static", "css")),
 
 	"main_js": Gather(["jquery.js", "custom.js"])
 		.Process("bundle", "main.js") #the files will now be outputted as a single file with this name
 		.Process("yui")
-		.Output("blobstore", "/devmedia/"),
+		.Output("filesystem", os.path.join(PROJECT_DIR, "static", "js")),
 }
 
 ASSET_PIPELINE_ACTIVE = "live" if on_production_server else 'dev'
+
+ASSET_DEV_MODE = not on_production_server
+
+ASSET_MEDIA_URLS_FILE = os.path.join(PROJECT_DIR, "static", "generated_media_urls.json")
 
 ```
 
@@ -75,6 +113,10 @@ If True, then the pipeline middleware will run on each request, this should be s
     ASSET_PIPELINE_ACTIVE = str
 
 This defines which of the pipelines is "active" and will be run by the assetpipe middleware
+
+    ASSET_MEDIA_URLS_FILE = str
+    
+Defines the path of the manifest file
 
     ASSET_PIPELINES = { pipeline_name: { bundle_name: Pipeline } }
 
