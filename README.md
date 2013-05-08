@@ -8,6 +8,16 @@ For sites running on Google App Engine processed files are served from the Blobs
 
 ## Basic usage
 
+Edit `app.yaml`:
+
+```
+- url: /static/img
+  static_dir: static/img
+
+- url: /static
+  static_dir: static/media
+```
+
 Add the 'assetpipe' app to your `INSTALLED_APPS`:
 
 ```
