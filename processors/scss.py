@@ -6,6 +6,9 @@ from ..base import Processor
 from django.conf import settings
 
 class SCSS(Processor):
+    def __init__(self, pipeline, debug=False, *args, **kwargs):
+        super(SCSS, self).__init__(pipeline, *args, **kwargs)
+        self.debug = debug
 
     def modify_expected_output_filenames(self, filenames):
         modified = []
@@ -40,6 +43,9 @@ class SCSS(Processor):
         for path in getattr(settings, "SASS_ADDITIONAL_INCLUDE_PATHS", []):
             command.append("-I")
             command.append('%s' % path)
+
+        if self.debug:
+            command.append("--debug-info")
 
         try:
             for filename, contents in inputs.items():
