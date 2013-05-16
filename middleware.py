@@ -1,6 +1,9 @@
 from django.conf import settings
 from django.core.exceptions import MiddlewareNotUsed
 
+IN_TESTING = getattr(settings, 'IN_TESTING', False)
+
+
 class AssetMiddleware(object):
     def __init__(self):
         if not settings.ASSET_DEV_MODE:
@@ -24,6 +27,8 @@ class AssetMiddleware(object):
         active = getattr(settings, 'ASSET_PIPELINE_ACTIVE')
         pipelines = settings.ASSET_PIPELINES.get(active, {})
 
+        if IN_TESTING:
+            return
         for pipeline in pipelines.values():
             pipeline.run()
             url_root = pipeline._root().url_root
