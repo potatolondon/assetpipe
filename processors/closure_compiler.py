@@ -4,6 +4,7 @@ import os
 import StringIO
 from django.conf import settings
 from django.utils.encoding import smart_str
+import logging
 from ..base import Processor
 from django.core.exceptions import ImproperlyConfigured
 
@@ -32,6 +33,9 @@ class ClosureCompiler(Processor):
                     universal_newlines=True
                 )
                 output, error = cmd.communicate(smart_str(contents.read()))
+
+                if error:
+                    logging.warn(error)
 
                 file_out = StringIO.StringIO()
                 file_out.write(output)

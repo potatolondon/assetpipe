@@ -1,6 +1,8 @@
 from collections import OrderedDict
 import os
 import StringIO
+import logging
+
 from ..base import Processor
 
 from django.conf import settings
@@ -62,6 +64,10 @@ class SCSS(Processor):
                 )
 
                 output, error = cmd.communicate('@import "%s"' % filename)
+
+                if error:
+                    logging.warn(error)
+
                 assert cmd.wait() == 0, 'Command returned bad result:\n%s' % error
 
                 file_out = StringIO.StringIO()

@@ -1,5 +1,6 @@
 from collections import OrderedDict
 import os
+import logging
 import StringIO
 from django.conf import settings
 from ..base import Processor
@@ -43,6 +44,10 @@ class ClosureBuilder(Processor):
                 universal_newlines=True
             )
             output, error = cmd.communicate()
+
+            if error:
+                logging.warn(error)
+
             assert cmd.wait() == 0, 'Command returned bad result:\n%s' % error
             file_out = StringIO.StringIO()
             # Keep closure from needing a deps.js file
