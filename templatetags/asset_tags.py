@@ -3,7 +3,10 @@ from django import template
 from django.conf import settings
 from assetpipe.base import read_generated_media_file
 
+IN_TESTING = getattr(settings, 'IN_TESTING', False)
+
 register = template.Library()
+
 
 class AssetNode(template.Node):
     def __init__(self, pipeline_name):
@@ -11,6 +14,9 @@ class AssetNode(template.Node):
         self._generated_cache = None
 
     def render(self, context):
+        if IN_TESTING:
+            return ''
+
         pipeline_name = template.Variable(self.pipeline_name).resolve(context)
         tags = []
 
@@ -59,6 +65,9 @@ class AssetURLNode(template.Node):
         self._generated_cache = None
 
     def render(self, context):
+        if IN_TESTING:
+            return ''
+
         pipeline_name = template.Variable(self.pipeline_name).resolve(context)
 
         if settings.ASSET_DEV_MODE:
