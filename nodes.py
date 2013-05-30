@@ -3,6 +3,10 @@ import os
 import StringIO
 import glob
 import logging
+import re
+import time
+
+from django.utils import timezone
 from django.conf import settings
 
 from hashlib import md5
@@ -146,7 +150,6 @@ class Node(object):
 
         self.hash = hasher.hexdigest()
 
-
     #Generic methods which allow chaining of the nodes
     def Output(self, outputter, url_root=None, directory=None):
         url_root = url_root or settings.STATIC_URL
@@ -154,6 +157,9 @@ class Node(object):
 
     def Process(self, processor, *args, **kwargs):
         return ProcessNode(self, processor, *args, **kwargs)
+
+    def Watch(self, *args, **kwargs):
+        return Watch(self, *args, **kwargs)
 
 
 class OutputNode(Node):
@@ -222,6 +228,58 @@ class ProcessNode(Node):
         return False
 
 
+class Watch(Node):
+    def __init__(self, parent, to_watch, filter_files, *args, **kwargs):
+        super(Watch, self).__init__(parent, *args, **kwargs)
+        self.watcher_id = hash(''.join(self.inputs))
+        self.filter = filter_files
+
+        # Separate to_watch list into files and directories for easier processing later on
+        self.files_to_watch = []
+        self.dirs_to_watch = []
+        for file_or_dir in to_watch:
+            if os.path.isdir(file_or_dir):
+                self.dirs_to_watch.append(file_or_dir)
+            else:
+                self.files_to_watch.append(file_or_dir)
+
+    @property
+    def metadata(self):
+        """ This is a bit hacky, but necessary to avoid a circular import with the settings file """
+        if not hasattr(self, "_metadata"):
+            from .models import WatcherMetadata
+            self._metadata = WatcherMetadata.objects.get_or_create(watcher_id=self.watcher_id)[0]
+        return self._metadata
+
+    def modify_expected_output_filenames(self):
+        pass
+
+    def do_run(self):
+        self.metadata.last_run_at = timezone.now()
+        self.metadata.save()
+
+    def check_file_modified(self, file):
+        last_run = self.metadata.last_run_at
+        if not last_run or os.path.getmtime(file) > time.mktime(last_run.timetuple()):
+            return True
+        return False
+
+    def is_dirty(self):
+        for f in self.files_to_watch:
+            pass
+
+        for directory in self.dirs_to_watch:
+            for root, subFolders, files in os.walk(directory):
+                for f in [x for x in files if re.search(self.filter, x)]:
+                    if not root.endswith("/"):
+                        root += "/"
+
+                    full_path = root + f
+                    if self.check_file_modified(full_path):
+                        return True
+        return False
+
+
 class Gather(Node):
     """ The starting node of every pipeline.  Picks up the specified
         files from the filesystem and puts them into self.outputs.
@@ -247,7 +305,6 @@ class Gather(Node):
         self.input_files = expanded_inputs if filenames else inputs
         self.input_files_are_filenames = filenames
         self.pipeline_hash = self.generate_pipeline_hash(self.input_files, self.input_files_are_filenames)
-
 
     def modify_expected_output_filenames(self):
         if self.input_files_are_filenames:
