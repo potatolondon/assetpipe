@@ -63,6 +63,7 @@ class SCSS(Processor):
                     universal_newlines=True
                 )
 
+                filename = filename.replace("\\", "/")
                 output, error = cmd.communicate('@import "%s"' % filename)
 
                 if error:
