@@ -277,6 +277,11 @@ class Watch(Node):
                     full_path = root + f
                     if self.check_file_modified(full_path):
                         return True
+
+        for f in self.files_to_watch:
+            if self.check_file_modified(f):
+                return True
+
         return False
 
 
