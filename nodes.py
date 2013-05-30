@@ -81,8 +81,6 @@ class Node(object):
             self.run_output_filename_changes()
             logging.info("PIPELINE: Running pipeline")
             self._root()._run()
-        else:
-            logging.info("PIPELINE: NOT running clean pipeline")
 
     def _run(self):
         if self.parent:
