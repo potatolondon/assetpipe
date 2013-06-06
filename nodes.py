@@ -62,10 +62,14 @@ class Node(object):
         if parent:
             parent.child = self
 
-
     def _head(self):
         if self.parent:
             return self.parent._head()
+        return self
+
+    def _tail(self):
+        if self.child:
+            return self.child._tail()
         return self
 
     def prepare(self):
