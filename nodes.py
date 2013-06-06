@@ -63,9 +63,9 @@ class Node(object):
             parent.child = self
 
 
-    def _root(self):
+    def _head(self):
         if self.parent:
-            return self.parent._root()
+            return self.parent._head()
         return self
 
     def prepare(self):
@@ -80,7 +80,7 @@ class Node(object):
         if self.any_dirty():
             self.run_output_filename_changes()
             logging.info("PIPELINE: Running pipeline")
-            self._root()._run()
+            self._head()._run()
         else:
             logging.info("PIPELINE: NOT running clean pipeline")
 
@@ -106,7 +106,7 @@ class Node(object):
         raise NotImplementedError()
 
     def any_dirty(self):
-        n = self._root()
+        n = self._head()
         while n.child:
             if n.is_dirty():
                 return True
@@ -115,7 +115,7 @@ class Node(object):
         return n.is_dirty()
 
     def run_output_filename_changes(self):
-        n = self._root()
+        n = self._head()
         n.expected_output_filenames = []
         while n.child:
             n.modify_expected_output_filenames()
@@ -166,7 +166,7 @@ class OutputNode(Node):
 
         self.update_hash(parent, outputter_name, url_root, directory)
 
-        self._root().url_root = url_root
+        self._head().url_root = url_root
         self.outputter = OUTPUTTERS[outputter_name](directory)
 
 
@@ -178,7 +178,7 @@ class OutputNode(Node):
 
         for output in self.expected_output_filenames:
             result.append(
-                self._root().url_root +
+                self._head().url_root +
                 os.path.relpath(os.path.join(output_dir, output), common_prefix)
             )
 
@@ -210,7 +210,7 @@ class ProcessNode(Node):
         """
         super(ProcessNode, self).__init__(parent)
         self.update_hash(parent, processor_name, *args, **kwargs)
-        self.processor = PROCESSORS[processor_name](self._root(), *args, **kwargs)
+        self.processor = PROCESSORS[processor_name](self._head(), *args, **kwargs)
 
     def modify_expected_output_filenames(self):
         self.expected_output_filenames = self.processor.modify_expected_output_filenames(

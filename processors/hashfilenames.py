@@ -19,6 +19,6 @@ class HashFileNames(Processor):
         return outputs
 
     def _add_hash_to_filename(self, filename):
-        hsh = self.pipeline._root().pipeline_hash
+        hsh = self.pipeline._head().pipeline_hash
         part, ext = os.path.splitext(filename)
         return ".".join([part, hsh, ext.lstrip(".")])

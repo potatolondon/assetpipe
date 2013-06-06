@@ -31,7 +31,7 @@ class AssetMiddleware(object):
             return
         for pipeline in pipelines.values():
             pipeline.run()
-            url_root = pipeline._root().url_root
+            url_root = pipeline._head().url_root
 
             if not request.path.startswith(url_root):
                 #If the URL being requested is not a sub-path of the serving URL of this bundle
