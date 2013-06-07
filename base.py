@@ -12,12 +12,6 @@ class Processor(object):
         """
         self.pipeline = pipeline
 
-    def modify_expected_output_filenames(self, filenames):
-        """ Given the existing list of filenames, return the list of
-            filenames as it will be after self.processs() has run.
-        """
-        raise NotImplementedError()
-
     def process(self, inputs):
         """ Given the inputs (an OrderedDict of filename: StringIO(output) mappings),
             modify them however you like (e.g. minify or concatenate them) and return

@@ -11,10 +11,6 @@ class ClosureBuilder(Processor):
         self.namespaces = namespaces
         self.js_dirs = js_dirs
 
-    def modify_expected_output_filenames(self, filenames):
-        #TODO: modify these here
-        return filenames
-
     def process(self, inputs):
         """
             Runs the closurebuilder.py script to generate a single JS file.

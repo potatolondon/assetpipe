@@ -12,14 +12,6 @@ class SCSS(Processor):
         super(SCSS, self).__init__(pipeline, *args, **kwargs)
         self.debug = debug
 
-    def modify_expected_output_filenames(self, filenames):
-        modified = []
-        for filename in filenames:
-            filename, ext = os.path.splitext(filename)
-            modified.append("%s.css" % filename)
-        return modified
-
-
     def process(self, inputs):
         from subprocess import Popen, PIPE
 
@@ -85,4 +77,3 @@ class SCSS(Processor):
                     "SASS_COMPILER_BINARY in your settings correctly.\n"
                     "Error was: %s" % e)
         return outputs
-

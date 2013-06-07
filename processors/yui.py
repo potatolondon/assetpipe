@@ -7,10 +7,6 @@ from django.utils.encoding import smart_str
 from ..base import Processor
 
 class YUI(Processor):
-
-    def modify_expected_output_filenames(self, filenames):
-        return filenames
-
     def process(self, inputs):
         from subprocess import Popen, PIPE
 

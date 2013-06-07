@@ -4,13 +4,9 @@ from ..base import Processor
 
 
 class Bundle(Processor):
-
     def __init__(self, pipline, output_file_name):
         super(Bundle, self).__init__(pipline)
         self.output_file_name = output_file_name
-
-    def modify_expected_output_filenames(self, filenames):
-        return [self.output_file_name]
 
     def process(self, inputs):
         """

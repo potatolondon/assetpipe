@@ -9,10 +9,6 @@ from ..base import Processor
 from django.core.exceptions import ImproperlyConfigured
 
 class ClosureCompiler(Processor):
-
-    def modify_expected_output_filenames(self, filenames):
-        return filenames
-
     def process(self, inputs):
         if not hasattr(settings, "CLOSURE_COMPILER_BINARY"):
             raise ImproperlyConfigured("Please set the CLOSURE_COMPILER_BINARY setting")
