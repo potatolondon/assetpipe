@@ -19,3 +19,5 @@ class Bundle(Processor):
         output.seek(0) #Rewind to the beginning
         return OrderedDict([(self.output_file_name, output)])
 
+    def prepare(self, inputs):
+        return OrderedDict([(self.output_file_name, None)])
