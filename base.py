@@ -19,6 +19,9 @@ class Processor(object):
         """
         raise NotImplementedError()
 
+    def prepare(self, inputs):
+        return inputs
+
 
 class Outputter(object):
     def __init__(self, directory=None):
