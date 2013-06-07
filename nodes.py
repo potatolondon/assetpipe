@@ -46,7 +46,7 @@ register_outputter("filesystem", Filesystem)
 class Node(object):
     def __init__(self, parent):
         #the list of files (including wildcards) which we started with
-        self.inputs = []
+        self._inputs = []
 
         #the expanded list of input files, with folder/* wildcards expanded
         self.input_files = []
@@ -62,96 +62,71 @@ class Node(object):
         if parent:
             parent.child = self
 
-    def _head(self):
+    @property
+    def inputs(self):
         if self.parent:
-            return self.parent._head()
+            return self.parent.outputs
+        return self._inputs
+
+    @property
+    def head(self):
+        if self.parent:
+            return self.parent.head
         return self
 
-    def _tail(self):
+    @property
+    def tail(self):
         if self.child:
-            return self.child._tail()
+            return self.child.tail()
         return self
+
+    def any_dirty(self):
+        """ Does as much work as is necessary to find out if the pipeline needs to be run,
+            but should avoid any expensive operations, because it needs to be run very often.
+        """
+        if self.is_dirty():
+            return True
+
+        if self.child:
+            return self.child.any_dirty()
+        else:
+            return False
+
+    def is_dirty(self):
+        """ Return True if the pipeline should be run, False otherwise. """
+        raise NotImplementedError()
 
     def prepare(self):
-        """ A bit like calling .run() but without the is_dirty() checks. """
-        self.run_output_filename_changes()
-        self.output_filename_changes_done = True
+        """ Do necessary preparations the nodes need to be able to tell if the pipeline is dirty. """
+        self.do_prepare()
+
+        if self.child:
+            self.child.prepare()
 
     def run(self):
-        if not self.output_filename_changes_done:
-            self.run_output_filename_changes()
-            self.output_filename_changes_done = True
-        if self.any_dirty():
-            self.run_output_filename_changes()
+        """ Starting point for the pipeline, calls prepare and any_dirty on the pipeline head
+            If the pipeline is dirty, it calls _run on the head, to start the actual processing.
+        """
+        self.head.prepare()
+
+        if self.head.any_dirty():
             logging.info("PIPELINE: Running pipeline")
-            self._head()._run()
+            self.head._run()
         else:
             logging.info("PIPELINE: NOT running clean pipeline")
 
     def _run(self):
-        if self.parent:
-            self.outputs = self.parent.outputs.copy()
-
+        """ Loop through all children and call do_run on each. """
         self.do_run()
 
         if self.child:
             self.child._run()
 
     def do_run(self):
-        """ Alter self.outputs. """
-        raise NotImplementedError()
-
-    def is_dirty(self): raise NotImplementedError()
-
-    def modify_expected_output_filenames(self):
-        """ Alter self.expected_output_filenames in the same way that they
-            will be modified by do_run() when the pipeline actually runs.
+        """ Perform the node's actions.
+            This is called by _run, which loops through the pipeline.
         """
         raise NotImplementedError()
-
-    def any_dirty(self):
-        n = self._head()
-        while n.child:
-            if n.is_dirty():
-                return True
-            n = n.child
-
-        return n.is_dirty()
-
-    def run_output_filename_changes(self):
-        n = self._head()
-        n.expected_output_filenames = []
-        while n.child:
-            n.modify_expected_output_filenames()
-            n.child.expected_output_filenames = n.expected_output_filenames
-            n = n.child
-        n.modify_expected_output_filenames()
-
-    def generate_pipeline_hash(self, inputs, filenames=True):
-        """
-            Returns a hash representing this pipeline combined with its inputs
-        """
-        hasher = md5()
-        for inp in sorted(inputs):
-            if filenames:
-                u = str(os.path.getmtime(inp))
-                hasher.update(u)
-            else:
-                hasher.update(inp)
-        return hasher.hexdigest()
-
-
-    def update_hash(self, *args, **kwargs):
-        parts = [ self.__class__.__name__ ] + [ str(x) for x in args ]
-        for k in sorted(kwargs.keys()):
-            parts.extend([k, str(kwargs[k]) ])
-
-        hasher = md5()
-        for part in parts:
-            hasher.update(part)
-
-        self.hash = hasher.hexdigest()
-
 
     #Generic methods which allow chaining of the nodes
     def Output(self, outputter, url_root=None, directory=None):
@@ -166,13 +141,10 @@ class OutputNode(Node):
     def __init__(self, parent, outputter_name, url_root, directory=None):
         super(OutputNode, self).__init__(parent)
 
-        directory = os.path.join(settings.STATIC_ROOT, directory or "")
+        directory = os.path.join(settings.STATIC_ROOT, "")
 
-        self.update_hash(parent, outputter_name, url_root, directory)
-
-        self._head().url_root = url_root
+        self.head.url_root = url_root
         self.outputter = OUTPUTTERS[outputter_name](directory)
-
 
     def output_urls(self):
         result = []
@@ -180,30 +152,42 @@ class OutputNode(Node):
         output_dir = self.outputter.directory
         common_prefix = os.path.commonprefix([settings.STATIC_ROOT, output_dir])
 
-        for output in self.expected_output_filenames:
+        for (filename, content) in self.inputs.items():
+            filename = self._add_hash_to_filename(filename)
             result.append(
-                self._head().url_root +
-                os.path.relpath(os.path.join(output_dir, output), common_prefix)
+                self.head.url_root +
+                os.path.relpath(os.path.join(output_dir, filename), common_prefix)
             )
-
         return result
 
-    def modify_expected_output_filenames(self):
-        pass
+    def _add_hash_to_filename(self, filename):
+        hsh = self.head.hash
+        part, ext = os.path.splitext(filename)
+        return ".".join([part, hsh, ext.lstrip(".")])
+
+    def do_prepare(self):
+        return
+        new_inputs = OrderedDict()
+        for filename, contents in self.inputs.items():
+            hashed_filename = self._add_hash_to_filename(filename)
+            new_inputs[hashed_filename] = contents
+        self._inputs = new_inputs
+
+    def is_dirty(self):
+        for filename, contents in self.inputs.items():
+            filename = self._add_hash_to_filename(filename)
+            if not self.outputter.file_up_to_date(filename):
+                return True
+        return False
 
     def do_run(self):
         #OutputNode is the only type of node which does not alter self.outputs
-        for filename, contents in self.outputs.items():
+        for filename, contents in self.inputs.items():
+            filename = self._add_hash_to_filename(filename)
             self.outputter.output(filename, contents)
 
     def serve(self, filename):
         return self.outputter.serve(filename)
-
-    def is_dirty(self):
-        for f in self.expected_output_filenames:
-            if not self.outputter.file_up_to_date(f):
-                return True
-        return False
 
 
 class ProcessNode(Node):
@@ -213,29 +197,24 @@ class ProcessNode(Node):
             Update the hash of the pipeline to include the fact that this processor has been added.
         """
         super(ProcessNode, self).__init__(parent)
-        self.update_hash(parent, processor_name, *args, **kwargs)
-        self.processor = PROCESSORS[processor_name](self._head(), *args, **kwargs)
+        self.processor = PROCESSORS[processor_name](self.head, *args, **kwargs)
 
-    def modify_expected_output_filenames(self):
-        self.expected_output_filenames = self.processor.modify_expected_output_filenames(
-            self.expected_output_filenames
-        )
-
-    def do_run(self):
-        self.outputs = self.processor.process(self.outputs)
+    def do_prepare(self):
+        self.outputs = self.processor.prepare(self.inputs)
 
     def is_dirty(self):
         return False
+
+    def do_run(self):
+        self.outputs = self.processor.process(self.inputs)
 
 
 class Gather(Node):
     """ The starting node of every pipeline.  Picks up the specified
         files from the filesystem and puts them into self.outputs.
     """
-    def __init__(self, inputs, filenames=True):
+    def __init__(self, inputs, dependencies=[], filenames=True):
         super(Gather, self).__init__(None)
-
-        self.update_hash(inputs, filenames)
 
         #Try to glob match the inputs
         expanded_inputs = [] #will contain the full list of files, not just folder/*
@@ -252,19 +231,52 @@ class Gather(Node):
 
         self.input_files = expanded_inputs if filenames else inputs
         self.input_files_are_filenames = filenames
-        self.pipeline_hash = self.generate_pipeline_hash(self.input_files, self.input_files_are_filenames)
+        self.dependencies = dependencies
 
+    def generate_hash(self, *args, **kwargs):
+        parts = [ self.__class__.__name__ ] + [ str(x) for x in args ]
+        for k in sorted(kwargs.keys()):
+            parts.extend([k, str(kwargs[k]) ])
 
-    def modify_expected_output_filenames(self):
-        if self.input_files_are_filenames:
-            self.expected_output_filenames = self.input_files
-        else:
-            #Currently the CompileNode can take Closure namespaces instead of files :-/
-            raise NotImplementedError("What do we do here?")
+        hasher = md5()
+        for part in parts:
+            hasher.update(part)
+
+        return hasher.hexdigest()
+
+    def generate_pipeline_hash(self, inputs, dependencies=[], filenames=True):
+        """
+            Returns a hash representing this pipeline combined with its inputs
+        """
+        hasher = md5()
+        for inp in sorted(inputs):
+            if filenames:
+                u = str(os.path.getmtime(inp))
+                hasher.update(u)
+            else:
+                hasher.update(inp)
+
+        # FIXME: Add dependency watching
+        for dep in dependencies:
+            # Update hasher for every file in dependencies
+            pass
+        return hasher.hexdigest()
+
+    def do_prepare(self):
+        # FIXME: This currently doesn't take into account the pipeline itself, the pipeline steps need to be included in the hash
+        pipeline_hash = self.generate_pipeline_hash(self.input_files, dependencies=[], filenames=True)
+        self.hash = self.generate_hash(*(self.input_files + [] + [pipeline_hash]))
+
+    def is_dirty(self):
+        outputs = OrderedDict()
+        for inp in self.input_files:
+            outputs[inp] = None
+        self.outputs = outputs
+        return False
 
     def do_run(self):
-        """ Picks up file contents to start.
-        """
+        """ Picks up file contents to start. """
+
         outputs = OrderedDict()
         for inp in self.input_files:
             if isinstance(inp, basestring):
@@ -279,8 +291,3 @@ class Gather(Node):
             output.seek(0) #Rewind to the beginning
             outputs[inp] = output
         self.outputs = outputs
-
-    def is_dirty(self):
-        self.pipeline_hash = self.generate_pipeline_hash(self.input_files, self.input_files_are_filenames)
-        self.prepare()
-        return False
