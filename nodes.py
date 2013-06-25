@@ -10,13 +10,12 @@ from hashlib import md5
 from .processors import (
     Bundle,
     ClosureBuilder,
-    HashFileNames,
     SCSS,
     YUI,
     ClosureCompiler
 )
 
-from .base import NullOutputter #, NullCompiler, NullMinifier,
+from .base import NullOutputter, NullProcessor #, NullCompiler, NullMinifier,
 from .outputters.blobstore import Blobstore
 from .outputters.filesystem import Filesystem
 
@@ -34,7 +33,7 @@ register_processor("bundle", Bundle)
 register_processor("closure_builder", ClosureBuilder)
 register_processor("closure_compiler", ClosureCompiler)
 register_processor("closure", ClosureCompiler)
-register_processor("hashfilenames", HashFileNames)
+register_processor("hashfilenames", NullProcessor)
 register_processor("scss", SCSS)
 register_processor("yui", YUI)
 
@@ -166,7 +165,6 @@ class OutputNode(Node):
         return ".".join([part, hsh, ext.lstrip(".")])
 
     def do_prepare(self):
-        return
         new_inputs = OrderedDict()
         for filename, contents in self.inputs.items():
             hashed_filename = self._add_hash_to_filename(filename)

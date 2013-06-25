@@ -2,6 +2,7 @@
     You can extend these to make your own processors and outputters.
 """
 import os
+import logging
 
 class Processor(object):
 
@@ -22,6 +23,10 @@ class Processor(object):
     def prepare(self, inputs):
         return inputs
 
+class NullProcessor(Processor):
+    def process(self, inputs):
+        logging.warning("Using a NullProcessor, your pipeline is likely outdated")
+        return inputs
 
 class Outputter(object):
     def __init__(self, directory=None):
