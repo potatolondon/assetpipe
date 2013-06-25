@@ -254,10 +254,14 @@ class Gather(Node):
             else:
                 hasher.update(inp)
 
-        # FIXME: Add dependency watching
+        from .glob import glob
+
         for dep in dependencies:
             # Update hasher for every file in dependencies
-            pass
+            for f in sorted(glob(dep)):
+                u = str(os.path.getmtime(inp))
+                hasher.update(u)
+
         return hasher.hexdigest()
 
     def do_prepare(self):
