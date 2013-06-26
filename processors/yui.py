@@ -21,9 +21,10 @@ class YUI(Processor):
         outputs = OrderedDict()
 
         compressor = settings.YUI_COMPRESSOR_BINARY
-        try:
-            for filename, contents in inputs.items():
-                filetype = os.path.splitext(filename)[-1].lstrip(".")
+        for filename, contents in inputs.items():
+            filetype = os.path.splitext(filename)[-1].lstrip(".")
+
+            try:
                 cmd = Popen([
                     'java', '-jar', compressor,
                     '--charset', 'utf-8', '--type', filetype],
@@ -31,16 +32,15 @@ class YUI(Processor):
                     universal_newlines=True
                 )
                 output, error = cmd.communicate(smart_str(contents.read()))
+            except Exception, e:
+                raise ValueError(ERROR_STRING % e)
 
-                if error != '':
-                    raise ValueError(ERROR_STRING % error)
+            if error != '':
+                raise ValueError(ERROR_STRING % error)
 
-                file_out = StringIO.StringIO()
-                file_out.write(output)
-                file_out.seek(0)
-                outputs[filename] = file_out
-
-        except Exception, e:
-            raise ValueError(ERROR_STRING % e)
+            file_out = StringIO.StringIO()
+            file_out.write(output)
+            file_out.seek(0)
+            outputs[filename] = file_out
 
         return outputs
