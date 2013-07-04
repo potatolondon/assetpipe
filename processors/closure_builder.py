@@ -6,10 +6,11 @@ from django.conf import settings
 from ..base import Processor
 
 class ClosureBuilder(Processor):
-    def __init__(self, pipeline, namespaces, js_dirs):
+    def __init__(self, pipeline, namespaces=None, js_dirs=None, inputs=None):
         super(ClosureBuilder, self).__init__(pipeline)
-        self.namespaces = namespaces
-        self.js_dirs = js_dirs
+        self.namespaces = namespaces or []
+        self.js_dirs = js_dirs or []
+        self.inputs = inputs or []
 
     def process(self, inputs):
         """
@@ -32,6 +33,9 @@ class ClosureBuilder(Processor):
 
             for n in self.namespaces:
                 command.extend(['--namespace', n])
+
+            for i in self.inputs:
+                command.extend(['--input', i])
 
             command.extend(inputs.keys())
 
