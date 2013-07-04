@@ -16,8 +16,6 @@ class ClosureBuilder(Processor):
         """
             Runs the closurebuilder.py script to generate a single JS file.
         """
-        assert(self.namespaces)
-        assert(inputs)
 
         from subprocess import Popen, PIPE
 
@@ -63,6 +61,6 @@ class ClosureBuilder(Processor):
                     "Error was: %s" % e)
 
         #Closure builder only ever returns 1 file
-        filename = inputs.keys()[0]
+        filename = inputs.keys()[0] if inputs else "closure_builder_output.js"
         outputs[filename] = file_out
         return outputs
