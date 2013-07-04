@@ -8,9 +8,10 @@ from ..base import Processor
 from django.conf import settings
 
 class SCSS(Processor):
-    def __init__(self, pipeline, debug=False, *args, **kwargs):
+    def __init__(self, pipeline, use_compass=False, debug=False, *args, **kwargs):
         super(SCSS, self).__init__(pipeline, *args, **kwargs)
         self.debug = debug
+        self.use_compass = use_compass
 
     def process(self, inputs):
         from subprocess import Popen, PIPE
@@ -27,6 +28,9 @@ class SCSS(Processor):
 
         command.append(sass_path.strip())
         command.extend(["-C", "-t", "expanded", "-s"])
+
+        if self.use_compass:
+            command.append("compass")
 
         for require in getattr(settings, "SASS_ADDITIONAL_REQUIRES", []):
             command.extend(["--require", require ])
