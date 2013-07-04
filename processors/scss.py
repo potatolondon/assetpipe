@@ -30,7 +30,7 @@ class SCSS(Processor):
         command.extend(["-C", "-t", "expanded", "-s"])
 
         if self.use_compass:
-            command.append("compass")
+            command.append("--compass")
 
         for require in getattr(settings, "SASS_ADDITIONAL_REQUIRES", []):
             command.extend(["--require", require ])
