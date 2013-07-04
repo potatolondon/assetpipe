@@ -142,7 +142,7 @@ class OutputNode(Node):
     def __init__(self, parent, outputter_name, url_root, directory=None):
         super(OutputNode, self).__init__(parent)
 
-        directory = os.path.join(settings.STATIC_ROOT, "")
+        directory = os.path.join(settings.STATIC_ROOT, directory or "")
 
         self.head.url_root = url_root
         self.outputter = OUTPUTTERS[outputter_name](directory)
