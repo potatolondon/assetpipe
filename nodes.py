@@ -12,7 +12,8 @@ from .processors import (
     ClosureBuilder,
     SCSS,
     YUI,
-    ClosureCompiler
+    ClosureCompiler,
+    Prepend
 )
 
 from .base import NullOutputter, NullProcessor #, NullCompiler, NullMinifier,
@@ -36,6 +37,7 @@ register_processor("closure", ClosureCompiler)
 register_processor("hashfilenames", NullProcessor)
 register_processor("scss", SCSS)
 register_processor("yui", YUI)
+register_processor("prepend", Prepend)
 
 register_outputter("null", NullOutputter)
 register_outputter("blobstore", Blobstore)
