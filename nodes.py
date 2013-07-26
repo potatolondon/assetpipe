@@ -260,15 +260,15 @@ class Gather(Node):
 
         for dep in dependencies:
             # Update hasher for every file in dependencies
-            for f in sorted(glob(dep)):
-                u = str(os.path.getmtime(inp))
+            for f in sorted(glob(dep)) if not os.path.isfile(dep) else [dep]:
+                u = str(os.path.getmtime(f))
                 hasher.update(u)
 
         return hasher.hexdigest()
 
     def do_prepare(self):
         # FIXME: This currently doesn't take into account the pipeline itself, the pipeline steps need to be included in the hash
-        pipeline_hash = self.generate_pipeline_hash(self.input_files, dependencies=[], filenames=True)
+        pipeline_hash = self.generate_pipeline_hash(self.input_files, dependencies=self.dependencies, filenames=True)
         self.hash = self.generate_hash(*(self.input_files + [] + [pipeline_hash]))
 
     def is_dirty(self):
