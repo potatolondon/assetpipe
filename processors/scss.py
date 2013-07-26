@@ -8,10 +8,11 @@ from ..base import Processor
 from django.conf import settings
 
 class SCSS(Processor):
-    def __init__(self, pipeline, use_compass=False, debug=False, *args, **kwargs):
+    def __init__(self, pipeline, use_compass=False, debug=False, compressed=False, *args, **kwargs):
         super(SCSS, self).__init__(pipeline, *args, **kwargs)
         self.debug = debug
         self.use_compass = use_compass
+        self.compressed = compressed
 
     def process(self, inputs):
         from subprocess import Popen, PIPE
@@ -27,7 +28,8 @@ class SCSS(Processor):
             command.append('%s' % path)
 
         command.append(sass_path.strip())
-        command.extend(["-C", "-t", "expanded", "-s"])
+        css_style = "compressed" if self.compressed else "expanded"
+        command.extend(["-C", "-t", css_style, "-s"])
 
         if self.use_compass:
             command.append("--compass")
