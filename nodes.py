@@ -163,7 +163,7 @@ class OutputNode(Node):
 
     def _add_hash_to_filename(self, filename):
         def is_image(_filename):
-            return _filename.endswith(".png")
+            return _filename.endswith(".png") or _filename.endswith(".gif")
 
         if is_image(filename):
             return filename

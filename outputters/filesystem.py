@@ -31,7 +31,7 @@ class Filesystem(Outputter):
 
     def file_up_to_date(self, filename):
         #FIXME: Check timestamp instead of returning false for images
-        if filename.endswith(".png"):
+        if filename.endswith(".png") or filename.endswith(".gif"):
             return False
         
         return os.path.exists(filename)

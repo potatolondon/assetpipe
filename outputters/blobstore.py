@@ -39,6 +39,8 @@ class Blobstore(Outputter):
             mimetype = "text/javascript"
         elif ext == ".png":
             mimetype = "image/png"    
+        elif ext == ".gif":
+            mimetype = "image/gif"                
         else:
             mimetype = "application/octet-stream"
 
