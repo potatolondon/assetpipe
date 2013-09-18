@@ -6,7 +6,7 @@ from django.http import HttpResponse
 from ..base import Outputter
 
 class Filesystem(Outputter):
-    def output(self, filename, file_out):
+    def output(self, filename, file_out):        
         content = file_out.read()
 
         base, ext = os.path.splitext(filename)
@@ -20,8 +20,6 @@ class Filesystem(Outputter):
 
             os.remove(f)
 
-        filename = os.path.join(self.directory, filename)
-
         if not os.path.exists(os.path.dirname(filename)):
             os.makedirs(os.path.dirname(filename))
 
@@ -32,6 +30,10 @@ class Filesystem(Outputter):
                 f.write(content)
 
     def file_up_to_date(self, filename):
+        #FIXME: Check timestamp instead of returning false for images
+        if filename.endswith(".png"):
+            return False
+        
         return os.path.exists(filename)
 
     def serve(self, filename):
