@@ -1,4 +1,5 @@
 import os
+import sys
 import glob
 import logging
 from django.http import HttpResponse
@@ -6,7 +7,7 @@ from django.http import HttpResponse
 from ..base import Outputter
 
 class Filesystem(Outputter):
-    def output(self, filename, file_out):        
+    def output(self, filename, file_out):
         content = file_out.read()
 
         base, ext = os.path.splitext(filename)
@@ -33,7 +34,11 @@ class Filesystem(Outputter):
         #FIXME: Check timestamp instead of returning false for images
         if filename.endswith(".png") or filename.endswith(".gif"):
             return False
-        
+
+        #Always return false if we are manually generating
+        if "genassets" in sys.argv:
+            return False
+
         return os.path.exists(filename)
 
     def serve(self, filename):

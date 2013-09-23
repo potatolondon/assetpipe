@@ -9,6 +9,13 @@ from ..base import Processor
 from django.core.exceptions import ImproperlyConfigured
 
 class ClosureCompiler(Processor):
+    def __init__(self, pipeline, language_in="ECMASCRIPT5_STRICT", *args, **kwargs):
+        self.language_in = language_in
+
+        assert self.language_in in ("ECMASCRIPT5_STRICT", "ECMASCRIPT5", "ECMASCRIPT3")
+
+        super(ClosureCompiler, self).__init__(pipeline, *args, **kwargs)
+
     def process(self, inputs):
         if not hasattr(settings, "CLOSURE_COMPILER_BINARY"):
             raise ImproperlyConfigured("Please set the CLOSURE_COMPILER_BINARY setting")
@@ -22,7 +29,7 @@ class ClosureCompiler(Processor):
             for filename, contents in inputs.items():
                 cmd = Popen([
                     'java', '-jar', compressor,
-                    "--language_in", "ECMASCRIPT5_STRICT",
+                    "--language_in", self.language_in,
                     "--compilation_level", "SIMPLE_OPTIMIZATIONS"
                     ],
                     stdin=PIPE, stdout=PIPE, stderr=PIPE,
