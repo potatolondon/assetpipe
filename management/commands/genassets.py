@@ -15,6 +15,8 @@ class Command(BaseCommand):
     ]
     option_list = BaseCommand.option_list + tuple(extra_options)
 
+    requires_model_validation = False
+
     def handle(self, *args, **options):
         self.stdout = getattr(self, 'stdout', sys.stdout)
 
