@@ -227,6 +227,7 @@ class Gather(Node):
 
         #Try to glob match the inputs
         expanded_inputs = [] #will contain the full list of files, not just folder/*
+        assert not isinstance(inputs, basestring), "inputs should be a list or iterable, not string"
         for inp in inputs:
             if filenames:
                 #Deal with wildcards which refer to directories
