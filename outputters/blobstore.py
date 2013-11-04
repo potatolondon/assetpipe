@@ -22,7 +22,7 @@ class Blobstore(Outputter):
             raise ImproperlyConfigured(
                 "Google Appengine components required for the 'blobstore' "
                 "outputter could not be imported."
-            )        
+            )
         super(Blobstore, self).__init__(directory, strip_path)
 
     def output(self, filename, file_out):
@@ -38,9 +38,9 @@ class Blobstore(Outputter):
         elif ext == ".js":
             mimetype = "text/javascript"
         elif ext == ".png":
-            mimetype = "image/png"    
+            mimetype = "image/png"
         elif ext == ".gif":
-            mimetype = "image/gif"                
+            mimetype = "image/gif"
         else:
             mimetype = "application/octet-stream"
 
@@ -70,6 +70,12 @@ class Blobstore(Outputter):
     def file_up_to_date(self, filename):
         result = bool(BlobInfo.all().filter('filename =', filename).count())
         return result
+
+    def get_output_filename(self, filename):
+        """ Override this to return just the filename and not the full path,
+            because only the filename is stored is the blobstore BlobInfo.
+        """
+        return filename
 
     def serve(self, filename):
         #TODO: Surely if this file is served from a hash-based URL then we
