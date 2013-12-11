@@ -13,7 +13,8 @@ from .processors import (
     SCSS,
     YUI,
     ClosureCompiler,
-    Prepend
+    Prepend,
+    Append
 )
 
 from .base import NullOutputter, NullProcessor #, NullCompiler, NullMinifier,
@@ -38,6 +39,7 @@ register_processor("hashfilenames", NullProcessor)
 register_processor("scss", SCSS)
 register_processor("yui", YUI)
 register_processor("prepend", Prepend)
+register_processor("append", Append)
 
 register_outputter("null", NullOutputter)
 register_outputter("blobstore", Blobstore)
