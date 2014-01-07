@@ -2,6 +2,7 @@ import os
 import logging
 
 from django.http import HttpResponse, HttpResponseNotFound
+from django.conf import settings
 
 from ..base import Outputter
 try:
@@ -16,16 +17,18 @@ except ImportError:
 
 class Blobstore(Outputter):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, directory=None, strip_path=None, *args, **kwargs):
         if not HAVE_BLOBSTORE:
             raise ImproperlyConfigured(
                 "Google Appengine components required for the 'blobstore' "
                 "outputter could not be imported."
             )
-        super(Blobstore, self).__init__(*args, **kwargs)
-
+        super(Blobstore, self).__init__(directory, strip_path)
 
     def output(self, filename, file_out):
+        if filename.startswith(settings.STATIC_ROOT):
+            filename = filename[len(settings.STATIC_ROOT) + 1:]
+
         content = file_out.read()
 
         base, ext = os.path.splitext(filename)
@@ -34,6 +37,10 @@ class Blobstore(Outputter):
             mimetype = "text/css"
         elif ext == ".js":
             mimetype = "text/javascript"
+        elif ext == ".png":
+            mimetype = "image/png"
+        elif ext == ".gif":
+            mimetype = "image/gif"
         else:
             mimetype = "application/octet-stream"
 
@@ -63,6 +70,12 @@ class Blobstore(Outputter):
     def file_up_to_date(self, filename):
         result = bool(BlobInfo.all().filter('filename =', filename).count())
         return result
+
+    def get_output_filename(self, filename):
+        """ Override this to return just the filename and not the full path,
+            because only the filename is stored is the blobstore BlobInfo.
+        """
+        return filename
 
     def serve(self, filename):
         #TODO: Surely if this file is served from a hash-based URL then we

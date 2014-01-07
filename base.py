@@ -29,12 +29,21 @@ class NullProcessor(Processor):
         return inputs
 
 class Outputter(object):
-    def __init__(self, directory=None):
+    def __init__(self, directory=None, strip_path=None):
         self.directory = directory
+        self.strip_path = strip_path
 
     def output(self, filename, file_out):
         raise NotImplementedError()
 
+    def get_output_filename(self, filename):
+        if self.strip_path and filename.startswith(self.strip_path):
+            filename = filename[len(self.strip_path) + 1:]
+
+        if self.directory:
+            filename = os.path.join(self.directory, filename)
+
+        return filename
 
 class NullOutputter(object):
     def __init__(self, directory):

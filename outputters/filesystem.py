@@ -1,4 +1,5 @@
 import os
+import sys
 import glob
 import logging
 from django.http import HttpResponse
@@ -20,8 +21,6 @@ class Filesystem(Outputter):
 
             os.remove(f)
 
-        filename = os.path.join(self.directory, filename)
-
         if not os.path.exists(os.path.dirname(filename)):
             os.makedirs(os.path.dirname(filename))
 
@@ -32,6 +31,14 @@ class Filesystem(Outputter):
                 f.write(content)
 
     def file_up_to_date(self, filename):
+        #FIXME: Check timestamp instead of returning false for images
+        if filename.endswith(".png") or filename.endswith(".gif"):
+            return False
+
+        #Always return false if we are manually generating
+        if "genassets" in sys.argv:
+            return False
+
         return os.path.exists(filename)
 
     def serve(self, filename):

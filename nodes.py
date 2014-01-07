@@ -13,7 +13,8 @@ from .processors import (
     SCSS,
     YUI,
     ClosureCompiler,
-    Prepend
+    Prepend,
+    Append
 )
 
 from .base import NullOutputter, NullProcessor #, NullCompiler, NullMinifier,
@@ -38,6 +39,7 @@ register_processor("hashfilenames", NullProcessor)
 register_processor("scss", SCSS)
 register_processor("yui", YUI)
 register_processor("prepend", Prepend)
+register_processor("append", Append)
 
 register_outputter("null", NullOutputter)
 register_outputter("blobstore", Blobstore)
@@ -130,22 +132,22 @@ class Node(object):
         raise NotImplementedError()
 
     #Generic methods which allow chaining of the nodes
-    def Output(self, outputter, url_root=None, directory=None):
+    def Output(self, outputter, url_root=None, directory=None, *args, **kwargs):
         url_root = url_root or settings.STATIC_URL
-        return OutputNode(self, outputter, url_root, directory)
+        return OutputNode(self, outputter, url_root, directory, *args, **kwargs)
 
     def Process(self, processor, *args, **kwargs):
         return ProcessNode(self, processor, *args, **kwargs)
 
 
 class OutputNode(Node):
-    def __init__(self, parent, outputter_name, url_root, directory=None):
+    def __init__(self, parent, outputter_name, url_root, directory=None, *args, **kwargs):
         super(OutputNode, self).__init__(parent)
 
         directory = os.path.join(settings.STATIC_ROOT, directory or "")
 
         self.head.url_root = url_root
-        self.outputter = OUTPUTTERS[outputter_name](directory)
+        self.outputter = OUTPUTTERS[outputter_name](directory, *args, **kwargs)
 
     def output_urls(self):
         result = []
@@ -162,6 +164,12 @@ class OutputNode(Node):
         return result
 
     def _add_hash_to_filename(self, filename):
+        def is_image(_filename):
+            return _filename.endswith(".png") or _filename.endswith(".gif")
+
+        if is_image(filename):
+            return filename
+
         hsh = self.head.hash
         part, ext = os.path.splitext(filename)
         return ".".join([part, hsh, ext.lstrip(".")])
@@ -174,8 +182,10 @@ class OutputNode(Node):
         self._inputs = new_inputs
 
     def is_dirty(self):
-        for filename, contents in self.inputs.items():
+        for filename, contents in self.inputs.items():            
             filename = self._add_hash_to_filename(filename)
+            filename = self.outputter.get_output_filename(filename)
+
             if not self.outputter.file_up_to_date(filename):
                 return True
         return False
@@ -184,6 +194,7 @@ class OutputNode(Node):
         #OutputNode is the only type of node which does not alter self.outputs
         for filename, contents in self.inputs.items():
             filename = self._add_hash_to_filename(filename)
+            filename = self.outputter.get_output_filename(filename)
             self.outputter.output(filename, contents)
 
     def serve(self, filename):
@@ -218,6 +229,7 @@ class Gather(Node):
 
         #Try to glob match the inputs
         expanded_inputs = [] #will contain the full list of files, not just folder/*
+        assert not isinstance(inputs, basestring), "inputs should be a list or iterable, not string"
         for inp in inputs:
             if filenames:
                 #Deal with wildcards which refer to directories
