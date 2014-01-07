@@ -224,8 +224,6 @@ class Gather(Node):
                 matches = glob.glob(inp)
                 if matches:
                     expanded_inputs.extend(matches)
-                else:
-                    expanded_inputs.append(inp)
             else:
                 expanded_inputs.append(inp)
 
@@ -248,15 +246,19 @@ class Gather(Node):
         """
             Returns a hash representing this pipeline combined with its inputs
         """
+        from .glob import glob
+
         hasher = md5()
-        for inp in sorted(inputs):
+
+        join = lambda it: (y for x in it for y in x)
+        expanded_inputs = list(join([ glob(x) for x in inputs]))
+
+        for inp in sorted(expanded_inputs):
             if filenames:
                 u = str(os.path.getmtime(inp))
                 hasher.update(u)
             else:
                 hasher.update(inp)
-
-        from .glob import glob
 
         for dep in dependencies:
             # Update hasher for every file in dependencies
