@@ -115,8 +115,6 @@ class Node(object):
         if self.head.any_dirty():
             logging.info("PIPELINE: Running pipeline")
             self.head._run()
-        else:
-            logging.info("PIPELINE: NOT running clean pipeline")
 
     def _run(self):
         """ Loop through all children and call do_run on each. """
@@ -182,7 +180,7 @@ class OutputNode(Node):
         self._inputs = new_inputs
 
     def is_dirty(self):
-        for filename, contents in self.inputs.items():            
+        for filename, contents in self.inputs.items():
             filename = self._add_hash_to_filename(filename)
             filename = self.outputter.get_output_filename(filename)
 
