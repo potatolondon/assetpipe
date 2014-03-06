@@ -3,7 +3,6 @@ import os
 import StringIO
 import glob
 import logging
-from django.conf import settings
 
 from hashlib import md5
 
@@ -130,28 +129,29 @@ class Node(object):
         raise NotImplementedError()
 
     #Generic methods which allow chaining of the nodes
-    def Output(self, outputter, url_root=None, directory=None, *args, **kwargs):
-        url_root = url_root or settings.STATIC_URL
-        return OutputNode(self, outputter, url_root, directory, *args, **kwargs)
+    def Output(self, static_root, static_url, outputter, directory=None, *args, **kwargs):
+        return OutputNode(static_root, static_url, self, outputter, directory, *args, **kwargs)
 
     def Process(self, processor, *args, **kwargs):
         return ProcessNode(self, processor, *args, **kwargs)
 
 
 class OutputNode(Node):
-    def __init__(self, parent, outputter_name, url_root, directory=None, *args, **kwargs):
+    def __init__(self, static_root, static_url, parent, outputter_name, directory=None, *args, **kwargs):
         super(OutputNode, self).__init__(parent)
 
-        directory = os.path.join(settings.STATIC_ROOT, directory or "")
+        self.static_root = static_root
 
-        self.head.url_root = url_root
+        directory = os.path.join(static_root, directory or "")
+
+        self.head.url_root = static_url
         self.outputter = OUTPUTTERS[outputter_name](directory, *args, **kwargs)
 
     def output_urls(self):
         result = []
 
         output_dir = self.outputter.directory
-        common_prefix = os.path.commonprefix([settings.STATIC_ROOT, output_dir])
+        common_prefix = os.path.commonprefix([self.static_root, output_dir])
 
         for (filename, content) in self.inputs.items():
             filename = self._add_hash_to_filename(filename)

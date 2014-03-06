@@ -29,6 +29,7 @@ class AssetMiddleware(object):
 
         if IN_TESTING:
             return
+
         for pipeline in pipelines.values():
             pipeline.run()
             url_root = pipeline.head.url_root
