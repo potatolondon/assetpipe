@@ -26,7 +26,10 @@ class ClosureBuilder(Processor):
             command = ['python', builder, "--output_mode", "script" ]
 
             for js_dir in self.js_dirs:
-                assert(os.path.exists(js_dir))
+                if not os.path.exists(js_dir):
+                    logging.warn("Unable to find JS dir %s", js_dir)
+                    continue
+
                 command.extend(["--root", js_dir])
 
             for n in self.namespaces:
@@ -46,7 +49,11 @@ class ClosureBuilder(Processor):
             if error:
                 logging.warn(error)
 
-            assert cmd.wait() == 0, 'Command returned bad result:\n%s' % error
+            if cmd.wait() != 0:
+                logging.warn(output)
+                logging.warn(error)
+                raise ValueError('Command returned bad result:\n%s' % error)
+
             file_out = StringIO.StringIO()
             # Keep closure from needing a deps.js file
             file_out.write('window.CLOSURE_NO_DEPS = true;')
