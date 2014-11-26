@@ -4,6 +4,12 @@
 import os
 import logging
 
+try:
+    import json
+except ImportError:
+    from django.utils import simplejson as json
+
+
 class Processor(object):
 
     def __init__(self, pipeline):
@@ -58,7 +64,6 @@ class NullOutputter(object):
 
 def read_generated_media_file(active_pipeline=None):
     from django.conf import settings
-    from django.utils import simplejson
 
     filename = settings.ASSET_MEDIA_URLS_FILE
     active_pipeline = active_pipeline or settings.ASSET_PIPELINE_ACTIVE
@@ -66,11 +71,10 @@ def read_generated_media_file(active_pipeline=None):
     #Make the filename active pipeline specific
     path, ext = os.path.splitext(filename)
     filename = ".".join([path, active_pipeline.lower(), ext.lstrip(".")])
-    return simplejson.loads(open(filename).read())
+    return json.loads(open(filename).read())
 
 def build_generated_media_file(active_pipeline=None):
     from django.conf import settings
-    from django.utils import simplejson
 
     filename = settings.ASSET_MEDIA_URLS_FILE
     active_pipeline = active_pipeline or settings.ASSET_PIPELINE_ACTIVE
@@ -84,4 +88,4 @@ def build_generated_media_file(active_pipeline=None):
         final[k] = v.output_urls()
 
     with open(filename, "w") as f:
-        f.write(simplejson.dumps(final))
+        f.write(json.dumps(final))
