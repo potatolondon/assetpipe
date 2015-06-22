@@ -53,4 +53,4 @@ class Filesystem(Outputter):
 
         content = open(filename, "r").read()
 
-        return HttpResponse(content, mimetype=mimetype)
+        return HttpResponse(content, content_type=mimetype)
