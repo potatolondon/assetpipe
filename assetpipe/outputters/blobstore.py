@@ -86,4 +86,4 @@ class Blobstore(Outputter):
             return HttpResponseNotFound()
             #
         content = BlobReader(info.key()).read()
-        return HttpResponse(content, mimetype=info.content_type)
+        return HttpResponse(content, content_type=info.content_type)
