@@ -19,6 +19,7 @@ from .processors import (
 from .base import NullOutputter, NullProcessor #, NullCompiler, NullMinifier,
 from .outputters.blobstore import Blobstore
 from .outputters.filesystem import Filesystem
+from .outputters.gaefilesystem import GaeFilesystem
 
 PROCESSORS = {}
 OUTPUTTERS = {}
@@ -43,6 +44,7 @@ register_processor("append", Append)
 register_outputter("null", NullOutputter)
 register_outputter("blobstore", Blobstore)
 register_outputter("filesystem", Filesystem)
+register_outputter("gaefilesystem", GaeFilesystem)
 
 
 class Node(object):

@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.core.exceptions import MiddlewareNotUsed
 
+from assetpipe import gae_sandbox
+
 IN_TESTING = getattr(settings, 'IN_TESTING', False)
 
 
@@ -23,6 +25,7 @@ class AssetMiddleware(object):
                 if setting is None:
                     raise ImproperlyConfigured("Missing assetpipe setting '%s'" % setting_name)
 
+    @gae_sandbox.allow_modules
     def process_request(self, request):
         active = getattr(settings, 'ASSET_PIPELINE_ACTIVE')
         pipelines = settings.ASSET_PIPELINES.get(active, {})
