@@ -1,8 +1,6 @@
 import os
-import sys
 import glob
 import logging
-from django.http import HttpResponse
 
 from .. import gae_sandbox
 from .filesystem import Filesystem
