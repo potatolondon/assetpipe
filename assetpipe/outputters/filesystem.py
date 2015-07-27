@@ -51,6 +51,7 @@ class Filesystem(Outputter):
         else:
             mimetype = "application/octet-stream"
 
-        content = open(filename, "r").read()
+        file_path = os.path.join(self.directory, filename)
+        content = open(file_path, "r").read()
 
         return HttpResponse(content, content_type=mimetype)
