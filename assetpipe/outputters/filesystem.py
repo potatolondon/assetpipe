@@ -2,9 +2,12 @@ import os
 import sys
 import glob
 import logging
+
+from django.conf import settings
 from django.http import HttpResponse
 
 from ..base import Outputter
+
 
 class Filesystem(Outputter):
     def output(self, filename, file_out):
@@ -51,7 +54,7 @@ class Filesystem(Outputter):
         else:
             mimetype = "application/octet-stream"
 
-        file_path = os.path.join(self.directory, filename)
+        file_path = os.path.join(settings.STATIC_ROOT, filename)
         content = open(file_path, "r").read()
 
         return HttpResponse(content, content_type=mimetype)
