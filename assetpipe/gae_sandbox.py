@@ -50,21 +50,24 @@ if ON_GAE:
                 for mod in patch_modules:
                     _system = reload(mod)
                     mod.__dict__.update(_system.__dict__)
+                # Put the environment back, again
+                os.environ = environ
+
 
         return _wrapped
 
 
-        @contextlib.contextmanager
-        def allow_mode_write():
-            original_modes = stubs.FakeFile.ALLOWED_MODES
-            new_modes = set(stubs.FakeFile.ALLOWED_MODES)
-            new_modes.add('w')
-            new_modes.add('wb')
-            stubs.FakeFile.ALLOWED_MODES = frozenset(new_modes)
-            try:
-                yield
-            finally:
-                stubs.FakeFile.ALLOWED_MODES = original_modes
+    @contextlib.contextmanager
+    def allow_writeable_filesystem():
+        original_modes = stubs.FakeFile.ALLOWED_MODES
+        new_modes = set(stubs.FakeFile.ALLOWED_MODES)
+        new_modes.add('w')
+        new_modes.add('wb')
+        stubs.FakeFile.ALLOWED_MODES = frozenset(new_modes)
+        try:
+            yield
+        finally:
+            stubs.FakeFile.ALLOWED_MODES = original_modes
 
 else:
     # Not on App Engine, provide no-ops
