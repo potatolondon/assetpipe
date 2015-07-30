@@ -50,6 +50,9 @@ if ON_GAE:
                 for mod in patch_modules:
                     _system = reload(mod)
                     mod.__dict__.update(_system.__dict__)
+                # Put the environment back, again
+                os.environ = environ
+
 
         return _wrapped
 
